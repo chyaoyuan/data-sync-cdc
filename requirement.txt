@@ -1,0 +1,7 @@
+cos-python-sdk-v5 == 1.9.25
+loguru==0.5.3
+databases==0.5.3
+sqlalchemy_utils==0.37.9
+sqlalchemy==1.4.27
+aiohttp==3.8.1
+psycopg2==2.9.6

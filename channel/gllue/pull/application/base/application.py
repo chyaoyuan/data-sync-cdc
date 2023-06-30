@@ -35,6 +35,12 @@ class BaseApplication:
 
         return await res.json(), res.status
 
+    @staticmethod
+    async def request_file_response_callback(res: aiohttp.ClientResponse):
+        if res.status != 200:
+            return await res.text(), res.status
+        return await res.content.read(), res.headers
+
     async def check_token(self):
         res, status = await self.async_session.get(self.gle_url.check,
                                                     params={"fields": "__name__%2Ccitys%2CjobTitle%2CtotalCount%2CjobStatus%2CopenDate%2Cbu____name__%2ClineManager__user%2Cjoborderuser_set__user____name__%2CaddedBy__user%2CdateAdded"},

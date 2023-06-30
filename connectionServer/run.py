@@ -6,9 +6,7 @@ from connectionServer.Application.base.baseApplication import BaseApplication
 
 class ConnectorIntegrate(BaseApplication):
 
-
     async def get_connector(self):
-
         payload = json.dumps({
             "name": "inventory-connector",
             "config": {
