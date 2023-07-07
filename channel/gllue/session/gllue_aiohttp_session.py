@@ -34,6 +34,7 @@ class GlHoMuraSession:
             kwargs["params"] = params
             last_error = Exception("")
             url = url + f"?gllue_private_token={urllib.parse.quote(token)}"
+            logger.info(urllib.parse.quote(token))
             for i in range(self.retry_time):
                 try:
                     res = await session.request(method.upper(), url, **kwargs)

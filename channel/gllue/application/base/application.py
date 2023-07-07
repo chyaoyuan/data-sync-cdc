@@ -3,7 +3,7 @@ import asyncio
 import aiohttp
 from loguru import logger
 
-from channel.gllue.pull.application.base.model import GleURL, GleUserConfig
+from channel.gllue.application.base.model import GleURL, GleUserConfig
 from channel.gllue.session.gllue_aiohttp_session import GlHoMuraSession
 
 
@@ -47,8 +47,7 @@ class BaseApplication:
                                                     ssl=False,
                                                     gle_config=self.gle_user_config.dict(),
                                                     func=self.request_response_callback)
-        logger.info(res)
-        logger.info(status)
+
 
 
 if __name__ == '__main__':
