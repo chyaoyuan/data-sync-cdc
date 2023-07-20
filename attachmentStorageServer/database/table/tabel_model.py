@@ -9,7 +9,7 @@ class AttachmentBaseInfoStorage(Base):
     """
     __tablename__ = "base_info"
     id = Column(String(600), primary_key=True, index=True, comment="自增长")
-    openId = Column(String(600), primary_key=True, index=True, comment="自增长")
+    openId = Column(String(600), index=True, comment="自增长")
     tenant = Column(String(600), nullable=False, comment="租户")
     isDelete = Column(BOOLEAN, comment="软删除")
     createAt = Column(DateTime, server_default=func.now(), comment="创建时间")

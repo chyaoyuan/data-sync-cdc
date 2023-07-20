@@ -1,0 +1,16 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: data-sync-v2-entity-storage-server
+  namespace: tip
+spec:
+  selector:
+    app: data-sync-v2-entity-storage-server
+    tier: backend
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 9400
+
+

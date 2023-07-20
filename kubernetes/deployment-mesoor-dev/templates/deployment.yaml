@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-sync-v2-entity-storage-server
+  namespace: tip
+spec:
+  selector:
+    matchLabels:
+      app: data-sync-v2-entity-storage-server
+      version: v1
+      tier: backend
+      track: stable
+  template:
+    metadata:
+      labels:
+        app: data-sync-v2-entity-storage-server
+        version: v1
+        tier: backend
+        track: stable
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      containers:
+        - name: data-sync-v2-entity-storage-server
+          image: cr.mesoor.com/production/data-sync-cdc:v20230710-01
+          imagePullPolicy: Always
+          env:
+            - name: PYTHONPATH
+              value: "."
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: middleware-config
+                  key: PG_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: middleware-config
+                  key: PG_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: middleware-config
+                  key: PG_DB_SYNC
+            - name: POSTGRES_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: middleware-config
+                  key: PG_HOST
+            - name: POSTGRES_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: middleware-config
+                  key: PG_PORT
+          command: [ "python", "./entityStorageServer/server.py"]
+      imagePullSecrets:
+        - name: crmesoor-pullsecret
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-sync-v2-gllue-pull-push
+  namespace: tip
+spec:
+  selector:
+    matchLabels:
+      app: data-sync-v2-gllue-pull-push
+      version: v1
+      tier: backend
+      track: stable
+  template:
+    metadata:
+      labels:
+        app: data-sync-v2-gllue-pull-push
+        version: v1
+        tier: backend
+        track: stable
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      containers:
+        - name: data-sync-v2-gllue-pull-push
+          image: cr.mesoor.com/production/data-sync-cdc:v20230718-01
+          imagePullPolicy: Always
+          env:
+            - name: PYTHONPATH
+              value: "."
+            - name: Entity_Storage_Server_HOST
+              value: "http://data-sync-v2-entity-storage-server"
+          command: [ "python", "./channel/gllue/executor/sync_candidate.py"]
+      imagePullSecrets:
+        - name: crmesoor-pullsecret

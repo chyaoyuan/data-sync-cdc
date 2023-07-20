@@ -5,15 +5,18 @@ from typing import Optional, Literal, List
 from urllib.parse import unquote
 from loguru import logger
 from pydantic import BaseModel, Field
-
+from datetime import datetime
+from urllib.parse import quote
 from channel.gllue.application.schema.application import GleSchema
 from channel.gllue.application.base.model import BaseResponseModel
+from middleware.settings.entitySorageSettings import parse_time_interval
 
 
 class SyncConfig(BaseModel):
     entity: str
     recent: int = Field(..., description="近 n 天/月/年", example=10)
     unit: Literal['day', 'month', 'year'] = Field(default="day", description="单位", example="day")
+    fieldName: Literal['lastContactDate__lastContactDate__day_range', 'lastUpdateDate__lastUpdateDate__day_range']= Field( description="时间段筛选的字段，如最后联系时间、最后更新时间")
     gql: Optional[str] = Field(default=None, description="可以指定gllueGQL")
 
 
@@ -24,9 +27,14 @@ class GleEntity(GleSchema):
     def __init__(self, gle_user_config: dict, sync_config: dict):
         super().__init__(gle_user_config)
         self.sync_config = SyncConfig(**sync_config)
-
         self.entity = self.sync_config.entity
-        # if self.sync_config.unit and self.sync_config.recent:
+        # 如果没配置GQL使用默认的时间GQL
+        if self.sync_config.unit and self.sync_config.recent and not self.sync_config.gql:
+            start_time, end_time = parse_time_interval({"unit": self.sync_config.unit, "recent": self.sync_config.recent})
+            self.gql = quote(self.sync_config.fieldName + "=" + start_time + "%2C" + end_time)
+
+        else:
+            self.gql = self.sync_config.gql
 
         self.add_child_field_list = ["candidateexperience","candidatequalification","candidatelanguage","candidateproject"]
 
@@ -39,12 +47,12 @@ class GleEntity(GleSchema):
                     "ordering": "-lastUpdateDate",
                     "paginate_by": self.total_count,
                     'page': page,
-                    # 'gql': "lastUpdateDate__today"
-
+                    'gql': self.gql
                     },
             func=self.request_response_callback)
         if check:
             return res
+
         child_field_name_list = self.get_field_name_list_child_from_field_list(field_name_list.split(","))
         entity_list = []
         for index, candidate in enumerate(res["result"][self.entity]):
@@ -54,6 +62,7 @@ class GleEntity(GleSchema):
                 _ = self.get_field_name_list_child_from_res(entity_id, self.entity, res["result"].get(child_field_name))
                 entity[child_field_name] = _
             attachments = candidate.get("attachments") or None
+
             if attachments:
                 pass
                 attachments_info, status = await self.async_session.get(
@@ -77,11 +86,21 @@ class GleEntity(GleSchema):
                     filename = unquote(params.get('filename'))
                     attachment["fileName"] = filename
                     attachment["fileContent"] = base64.b64encode(con).decode()
+                latest_date = None
+                for attachment_info in entity["attachment"]:
+                    if attachment_info["type"] == "candidate":
+                        date_added = attachment_info["dateAdded"]
+                        if date_added is not None:
+                            # 解析日期字符串为datetime对象
+                            date_added = datetime.strptime(date_added, "%Y-%m-%d %H:%M:%S")
+                            if latest_date is None or date_added > latest_date:
+                                latest_date = date_added
+                                latest_dict = attachment_info
+                                entity["latestResume"] = latest_dict
             entity_list.append(entity)
         return entity_list
 
     async def get_candidate_info(self, page: int, field_name_list: str):
-
         candidate_list = await self._get_candidate_info(page, field_name_list, check=False)
         return candidate_list
 
@@ -112,10 +131,7 @@ class GleEntity(GleSchema):
         return field_name_list
 
     async def push_entity(self, entity: dict):
-        logger.info(entity)
-        client_list = entity.get("client", [])
-        for client in client_list:
-            client["type"] = "normal"
+
         info, status = await self.async_session.post(
             url=f"{self.gle_user_config.apiServerHost}/rest/{self.entity}/add",
             gle_config=self.gle_user_config.dict(),

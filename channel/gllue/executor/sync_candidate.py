@@ -1,31 +1,85 @@
 import asyncio
+import time
 
+import jmespath
 import requests
 from loguru import logger
 
 from channel.gllue.application.applicaiton import GlePullApplication
+from channel.gllue.executor.config import gllue_industry_config_map, gllue_zhienng_config_map
+from middleware.application import mid
+# 如果解析结果没有则使用原值的字段
+
+# 如果只有此字段则不推送
+_if_only_exist = ["id"]
+
+
+def get_gle_func_id(func_name_list: list):
+    res = []
+    for industry in func_name_list:
+        gllue_industry_id = gllue_zhienng_config_map.get(industry)
+        if gllue_industry_id:
+            res.append(str(gllue_industry_id))
+    return ",".join(res)
+
+
+def get_gle_industry_id(industry_name_list: list):
+    res = []
+    print(industry_name_list)
+    for industry in industry_name_list:
+        gllue_industry_id = gllue_industry_config_map.get(industry)
+        if gllue_industry_id:
+            res.append(str(gllue_industry_id))
+    return ",".join(res)
+
+
+def create_need_remove_key_list(if_exist_not_push_list: list, data: dict):
+    need_remove_key_list = []
+    for jmespath_grama in if_exist_not_push_list:
+        verify = jmespath.search(jmespath_grama, data)
+        if verify:
+            need_remove_key_list.append(jmespath_grama)
+    return need_remove_key_list
+
+
+def remove_key(need_remove_key_list:list, data: dict):
+    for key in need_remove_key_list:
+        data.pop(key)
+
+
+def only_key_check(_if_only_exist: list, data: dict):
+    data_key_list = data.keys()
+    for data_key in data_key_list:
+        if data_key not in _if_only_exist:
+            return False
+    return True
 
 
 async def sync_candidate_pull_and_push():
+
     candidate_app = GlePullApplication({
                 "apiServerHost": "https://fsgtest.gllue.net",
                 "aesKey": "824531e8cad2a287",
                 "account": "api@fsg.com.cn"
             }, {
                 "entity": "candidate",
-                "recent": "1",
-                "unit": "year",
+                "recent": "3",
+                "unit": "day",
+                "fieldName": "lastUpdateDate__lastUpdateDate__day_range",
                 "gql": None,
             }).candidate_app
+
     client_app = GlePullApplication({
         "apiServerHost": "https://fsgtest.gllue.net",
         "aesKey": "824531e8cad2a287",
         "account": "api@fsg.com.cn"
     },{
-                "entity": "candidate",
-                "recent": "1",
-                "unit": "year",
-                "gql": None,
+        "key": "lastContactDate__lastContactDate__day_range",
+        "entity": "candidate",
+        "recent": "1",
+        "fieldName": "lastUpdateDate__lastUpdateDate__day_range",
+        "unit": "year",
+        "gql": None,
             }).client_app
     await candidate_app.check_token()
     field_name_list: str = await candidate_app.initialize_field()
@@ -37,24 +91,29 @@ async def sync_candidate_pull_and_push():
         for entity in entity_list:
             gle_id = entity["id"]
             entity["locations"] = str(entity["locations"])
-            if gle_id == 333:
 
-                logger.info(entity["locations"])
-            if entity.get("attachment") or None:
-                attachment_info_list = entity.get("attachment")
-                attachment = attachment_info_list[0]
+            # 判断变动
+            old_entity, status = await mid.entity_storage_mid.entity_storage_app.get_entity({"tenant": "wf-test","source_entity_type":"candidate","source_id":gle_id})
+            if status == 200 and old_entity.get("latestResume") and entity.get("latestResume"):
+                old_entity_last_resume = old_entity.get("latestResume")
+                new_entity_last_resume = entity.get("latestResume")
+                if old_entity_last_resume == new_entity_last_resume:
+                    logger.info(f"gle {gle_id}没有更新简历附件 跳过")
+                    continue
+
+            if entity.get("latestResume") or None:
+                latest_resume_info = entity.get("latestResume")
                 headers = {
                     'Authorization': 'APPCODE ' + "085c11ede59c44588116918f0d3ee1ed",
                     'Content-Type': 'application/json; charset=UTF-8',
                 }
 
                 data = {
-                    "file_name": attachment["fileName"],
-                    "file_cont": attachment["fileContent"],
+                    "file_name": latest_resume_info["fileName"],
+                    "file_cont": latest_resume_info["fileContent"],
                     "need_avatar": 1,
                     "ocr_type": 1,
                     "need_social_exp": 1,
-
                 }
                 res = requests.post("http://resumesdk.market.alicloudapi.com/ResumeParser", json=data, headers=headers)
                 if res.status_code == 200:
@@ -66,35 +125,37 @@ async def sync_candidate_pull_and_push():
                         if gle_entity.keys() == ["id"]:
                             logger.info(f"{gle_id}无转换结果")
                             continue
-                        logger.info(gle_entity)
-                        # company_name_list
+                        # 职位名标签
                         job_title_list = list(set([_.get("title") for _ in gle_entity.get("candidateexperience_set",[]) if _.get("title",)]))
-                        logger.info(job_title_list)
-                        tags = []
-                        for job_title in job_title_list:
-                            payload = {
-                                "texts": [
-                                    job_title
-                                ],
-                                "field": "description",
-                                "domain": "hr",
-                                "output_category": "position3",
-                                "top_k": 1
-                            }
-                            try:
-                                response = requests.request("POST", "http://effex.tpddns.cn:7777/v1alpha1/tagging/expand", headers=headers, json=payload,timeout=5)
-                                if response.status_code == 200:
-                                    logger.info(response.json())
-                                    tags.append(response.json()["tags"][0][0].get("tag"))
-                                else:
-                                    logger.error(f"标签解析失败->{response.status_code} {response.content.decode()}")
-                            except requests.exceptions.ReadTimeout:
-                                logger.error(f"标签服务超时跳过")
-                        if tags:
-                            gle_entity["tags"] = tags
+                        job_tag = await mid.tag_mid.tag_app.un_repeat_tag(job_title_list,"position3")
+                        logger.info(f"职能为->{job_tag}")
+                        if job_tag:
+                            gle_entity["tags"] = job_tag
+                            logger.info(f"职能为->{get_gle_func_id(job_tag)}")
+                            gle_entity["functions"] = get_gle_func_id(job_tag)
+                        company_name_list = list(set([_.get("client", {}).get("name") for _ in gle_entity.get("candidateexperience_set",[]) if _.get("client", {}).get("name")]))
+                        industry_tag = await mid.tag_mid.tag_app.un_repeat_tag(company_name_list, "industry2")
+
+                        # 曾就职公司名标签
+                        # industry_tag = ["互联网/IT/电子/通信-电子商务"]
+                        logger.info(f"行业为->{industry_tag}")
+                        if industry_tag:
+                            logger.info(f"行业为->{get_gle_industry_id(industry_tag)}")
+                            gle_entity["industrys"] = get_gle_industry_id(industry_tag)
+                        # 如果存在则抹除
+                        _if_exist_not_push_list = ["expected_salary", "dateOfBirth", 'locations']
+                        for _ in _if_exist_not_push_list:
+                            if _ in entity.keys():
+                                gle_entity.pop(_)
+
                         info = await candidate_app.push_entity(gle_entity)
+
                         # get company id
                         if info:
+                            # 写回成功
+                            await mid.entity_storage_mid.entity_storage_app.put_entity(
+                                {"tenant": "wf-test", "source_entity_type": "candidate", "source_id": gle_id,
+                                 "payload": entity})
                             experience_list = info.get("current_message", {}).get("candidateexperience", [])
                             for experience in experience_list:
                                 client_list = experience.get("current_message", {}).get("client",[])
@@ -109,57 +170,9 @@ async def sync_candidate_pull_and_push():
                     logger.info(res.content.decode())
                     continue
 
-async def sync_company_pull_and_push():
-    candidate_app = GlePullApplication({
-                "apiServerHost": "https://fsgtest.gllue.net",
-                "aesKey": "824531e8cad2a287",
-                "account": "api@fsg.com.cn"
-            }, {
-                "entity": "client",
-                "recent": "1",
-                "unit": "year",
-                "gql": None,
-            }).candidate_app
-    client_app = GlePullApplication({
-        "apiServerHost": "https://fsgtest.gllue.net",
-        "aesKey": "824531e8cad2a287",
-        "account": "api@fsg.com.cn"
-    },{
-                "entity": "client",
-                "recent": "1",
-                "unit": "year",
-                "gql": None,
-            }).client_app
-    await candidate_app.check_token()
-    field_name_list: str = await candidate_app.initialize_field()
-    max_page_index = await candidate_app.get_max_page()
-
-    for index_page in range(1, max_page_index + 1):
-        entity_list = await candidate_app.get_candidate_info(index_page, field_name_list)
-        logger.info(f"第{index_page}页 entity->{candidate_app.entity} id->{[entity['id'] for entity in entity_list]}")
-        for entity in entity_list:
-            gle_id = entity["id"]
-            logger.info(entity)
-            company_name = entity["name"]
-            payload = {
-                "texts": [
-                    company_name
-                ],
-                "field": "company",
-                "domain": "hr",
-                "output_category": "industry",
-                "top_k": 1
-            }
-            try:
-                response = requests.request("POST", "http://effex.tpddns.cn:7777/v1alpha1/tagging/expand", json=payload, timeout=10)
-                if response.status_code == 200:
-                    tag = response.json()["tags"][0][0].get("tag")
-                    await client_app.public_company_tag(gle_id, tag)
-                else:
-                    logger.error(f"标签解析失败->{response.status_code} {response.content.decode()}")
-            except requests.exceptions.ReadTimeout:
-                logger.error(f"标签服务超时跳过")
 
 if __name__ == '__main__':
-    asyncio.run(sync_company_pull_and_push())
+    while True:
+        asyncio.run(sync_candidate_pull_and_push())
+        time.sleep(300)
 

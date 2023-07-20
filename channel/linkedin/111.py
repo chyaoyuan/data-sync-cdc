@@ -29,10 +29,9 @@ with open("project_info_list.jsonl", "w+") as f:
         response = requests.request("GET", url, headers=headers)
         if response.status_code != 200:
             print(f"11111->{offset}")
-
             break
         f.write(json.dumps(response.json(), ensure_ascii=False))
-
+        f.write('\n')
         print(f"success->{offset}")
         offset = offset + 10
 

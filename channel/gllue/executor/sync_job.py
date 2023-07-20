@@ -12,7 +12,7 @@ async def sync_candidate_pull_and_push():
                 "aesKey": "824531e8cad2a287",
                 "account": "api@fsg.com.cn"
             }, {
-                "entity": "client",
+                "entity": "candidate",
                 "recent": "1",
                 "unit": "year",
                 "gql": None,

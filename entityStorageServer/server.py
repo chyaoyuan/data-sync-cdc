@@ -37,9 +37,28 @@ async def get_entity(tenant: str, entity_type: str, source_id: str):
         return JSONResponse(content=entity["payload"], status_code=200)
     return JSONResponse(content={}, status_code=404)
 
-# @app.put("/v6/entity-connection/{tenant}/{entity_type}/{source_id}/{open_id}")
-# async def put_entity_connection(body: dict):
-#     pass
+
+@app.post("/v6/connection/{tenant}/connection")
+async def put_entity(tenant: str, entity_type: str, source_id: str, payload: dict):
+    body = {
+        "tenant": tenant,
+        "entity_type": entity_type,
+        "source_id": source_id,
+        "payload": payload
+    }
+    await database_app.entity_info.put_entity(body)
+
+
+@app.post("/v6/connection/{tenant}/connection")
+async def put_entity(tenant: str, entity_type: str, source_id: str, payload: dict):
+    body = {
+        "tenant": tenant,
+        "source_entity_type": entity_type,
+        "source_open_id": source_id,
+        "entity_type": entity_type,
+        "source_id": source_id,
+    }
+    await database_app.entity_info.put_entity(body)
 
 if __name__ == '__main__':
     uvicorn.run(app, host="0.0.0.0", port=9400)

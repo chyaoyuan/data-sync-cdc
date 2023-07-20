@@ -30,8 +30,7 @@ class HoMuraSession:
                 try:
                     res = await session.request(method.upper(), url, **kwargs)
                     _res = time.time()-start_time
-                    if _res > 2:
-                        logger.error(f"base接口过久:  timeSpend->{_res} url->{url} kwargs->{kwargs}")
+
                     break
                 except Exception as _e:
                     if self.exception_class is None or self.exception_class is Exception:
