@@ -1,9 +1,7 @@
 import asyncio
 
-from loguru import logger
-
-from channel.gllue.application.schema.model import GleSchemaUrl
-from channel.gllue.application.base.application import BaseApplication
+from channel.gllue.pull.application.schema.model import GleSchemaUrl
+from channel.gllue.pull.application.base.application import BaseApplication
 
 
 class GleSchema(BaseApplication):

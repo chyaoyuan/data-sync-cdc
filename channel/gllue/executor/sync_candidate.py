@@ -5,8 +5,9 @@ import jmespath
 import requests
 from loguru import logger
 
-from channel.gllue.application.applicaiton import GlePullApplication
+from channel.gllue.pull.application.applicaiton import GlePullApplication
 from channel.gllue.executor.config import gllue_industry_config_map, gllue_zhienng_config_map
+from channel.gllue.push.application.application import GlePushApplication
 from middleware.application import mid
 # 如果解析结果没有则使用原值的字段
 
@@ -55,51 +56,29 @@ def only_key_check(_if_only_exist: list, data: dict):
     return True
 
 
-async def sync_candidate_pull_and_push():
+async def sync_candidate_pull_and_push(gle_user_config: dict, sync_config: dict):
+    candidate_pull_app = GlePullApplication(gle_user_config, sync_config).candidate_app
+    candidate_push_app = GlePushApplication(gle_user_config).candidate_app
 
-    candidate_app = GlePullApplication({
-                "apiServerHost": "https://fsgtest.gllue.net",
-                "aesKey": "824531e8cad2a287",
-                "account": "api@fsg.com.cn"
-            }, {
-                "entity": "candidate",
-                "recent": "3",
-                "unit": "day",
-                "fieldName": "lastUpdateDate__lastUpdateDate__day_range",
-                "gql": None,
-            }).candidate_app
+    await candidate_pull_app.check_token()
+    field_name_list: str = await candidate_pull_app.initialize_field()
+    page_total = await candidate_pull_app.get_max_page()
 
-    client_app = GlePullApplication({
-        "apiServerHost": "https://fsgtest.gllue.net",
-        "aesKey": "824531e8cad2a287",
-        "account": "api@fsg.com.cn"
-    },{
-        "key": "lastContactDate__lastContactDate__day_range",
-        "entity": "candidate",
-        "recent": "1",
-        "fieldName": "lastUpdateDate__lastUpdateDate__day_range",
-        "unit": "year",
-        "gql": None,
-            }).client_app
-    await candidate_app.check_token()
-    field_name_list: str = await candidate_app.initialize_field()
-    max_page_index = await candidate_app.get_max_page()
-
-    for index_page in range(1, max_page_index + 1):
-        entity_list = await candidate_app.get_candidate_info(index_page, field_name_list)
-        logger.info(f"第{index_page}页 entity->{candidate_app.entity} id->{[entity['id'] for entity in entity_list]}")
+    for index_page in range(1, page_total + 1):
+        entity_list = await candidate_pull_app.get_candidate_info(index_page, field_name_list)
+        logger.info(f"第{index_page}页 entity->{candidate_pull_app.entity} id->{[entity['id'] for entity in entity_list]}")
         for entity in entity_list:
             gle_id = entity["id"]
             entity["locations"] = str(entity["locations"])
 
-            # 判断变动
-            old_entity, status = await mid.entity_storage_mid.entity_storage_app.get_entity({"tenant": "wf-test","source_entity_type":"candidate","source_id":gle_id})
-            if status == 200 and old_entity.get("latestResume") and entity.get("latestResume"):
-                old_entity_last_resume = old_entity.get("latestResume")
-                new_entity_last_resume = entity.get("latestResume")
-                if old_entity_last_resume == new_entity_last_resume:
-                    logger.info(f"gle {gle_id}没有更新简历附件 跳过")
-                    continue
+            # # 判断变动
+            # old_entity, status = await mid.entity_storage_mid.entity_storage_app.get_entity({"tenant": "wf-test","source_entity_type":"candidate","source_id":gle_id})
+            # if status == 200 and old_entity.get("latestResume") and entity.get("latestResume"):
+            #     old_entity_last_resume = old_entity.get("latestResume")
+            #     new_entity_last_resume = entity.get("latestResume")
+            #     if old_entity_last_resume == new_entity_last_resume:
+            #         logger.info(f"gle {gle_id}没有更新简历附件 跳过")
+            #         continue
 
             if entity.get("latestResume") or None:
                 latest_resume_info = entity.get("latestResume")
@@ -146,22 +125,22 @@ async def sync_candidate_pull_and_push():
                         _if_exist_not_push_list = ["expected_salary", "dateOfBirth", 'locations']
                         for _ in _if_exist_not_push_list:
                             if _ in entity.keys():
-                                gle_entity.pop(_)
+                                gle_entity.pop(_, None)
 
-                        info = await candidate_app.push_entity(gle_entity)
+                        info = await candidate_push_app.push_candidate(gle_entity)
 
                         # get company id
-                        if info:
-                            # 写回成功
-                            await mid.entity_storage_mid.entity_storage_app.put_entity(
-                                {"tenant": "wf-test", "source_entity_type": "candidate", "source_id": gle_id,
-                                 "payload": entity})
-                            experience_list = info.get("current_message", {}).get("candidateexperience", [])
-                            for experience in experience_list:
-                                client_list = experience.get("current_message", {}).get("client",[])
-                                if client_list:
-                                    for client in client_list:
-                                        await client_app.public_normal_company(client.get("data"))
+                        # if info:
+                        #     # 写回成功
+                        #     await mid.entity_storage_mid.entity_storage_app.put_entity(
+                        #         {"tenant": "wf-test", "source_entity_type": "candidate", "source_id": gle_id,
+                        #          "payload": entity})
+                        #     experience_list = info.get("current_message", {}).get("candidateexperience", [])
+                        #     for experience in experience_list:
+                        #         client_list = experience.get("current_message", {}).get("client",[])
+                        #         if client_list:
+                        #             for client in client_list:
+                        #                 await client_app.public_normal_company(client.get("data"))
 
                     else:
                         logger.error(f"未知解析错误 id->{gle_id} {res.status_code} {res.content}")
@@ -173,6 +152,18 @@ async def sync_candidate_pull_and_push():
 
 if __name__ == '__main__':
     while True:
-        asyncio.run(sync_candidate_pull_and_push())
+        _gle_user_config = {
+                "apiServerHost": "https://fsgtest.gllue.net",
+                "aesKey": "824531e8cad2a287",
+                "account": "api@fsg.com.cn"
+            }
+        _sync_config = {
+                "entity": "candidate",
+                "recent": "3",
+                "unit": "day",
+                "fieldName": "lastUpdateDate__lastUpdateDate__day_range",
+                "gql": None,
+            }
+        asyncio.run(sync_candidate_pull_and_push(_gle_user_config,_sync_config))
         time.sleep(300)
 

@@ -2,8 +2,8 @@ import asyncio
 
 from loguru import logger
 
-from channel.gllue.application.schema.application import GleSchema
-from channel.gllue.application.base.model import BaseResponseModel
+from channel.gllue.pull.application.schema.application import GleSchema
+from channel.gllue.pull.application.base.model import BaseResponseModel
 
 
 class GleJobOrder(GleSchema):

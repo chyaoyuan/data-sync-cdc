@@ -3,7 +3,7 @@ import asyncio
 import aiohttp
 from loguru import logger
 
-from channel.gllue.application.base.model import GleURL, GleUserConfig
+from channel.gllue.pull.application.base.model import GleURL, GleUserConfig
 from channel.gllue.session.gllue_aiohttp_session import GlHoMuraSession
 
 

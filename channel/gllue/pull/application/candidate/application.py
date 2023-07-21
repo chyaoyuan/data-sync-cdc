@@ -7,8 +7,8 @@ from loguru import logger
 from pydantic import BaseModel, Field
 from datetime import datetime
 from urllib.parse import quote
-from channel.gllue.application.schema.application import GleSchema
-from channel.gllue.application.base.model import BaseResponseModel
+from channel.gllue.pull.application.schema.application import GleSchema
+from channel.gllue.pull.application.base.model import BaseResponseModel
 from middleware.settings.entitySorageSettings import parse_time_interval
 
 
@@ -18,11 +18,12 @@ class SyncConfig(BaseModel):
     unit: Literal['day', 'month', 'year'] = Field(default="day", description="单位", example="day")
     fieldName: Literal['lastContactDate__lastContactDate__day_range', 'lastUpdateDate__lastUpdateDate__day_range']= Field( description="时间段筛选的字段，如最后联系时间、最后更新时间")
     gql: Optional[str] = Field(default=None, description="可以指定gllueGQL")
+    # syncExtraFields: Optional[str] = Field(default=)
 
 
 class GleEntity(GleSchema):
     # 每页最大条数
-    total_count: int = 10
+    total_count: int = 100
 
     def __init__(self, gle_user_config: dict, sync_config: dict):
         super().__init__(gle_user_config)
@@ -36,7 +37,7 @@ class GleEntity(GleSchema):
         else:
             self.gql = self.sync_config.gql
 
-        self.add_child_field_list = ["candidateexperience","candidatequalification","candidatelanguage","candidateproject"]
+        self.add_child_field_list = ["candidateexperience", "candidatequalification","candidatelanguage","candidateproject"]
 
     async def _get_candidate_info(self, page: int, field_name_list: str, check: bool):
         res, status = await self.async_session.get(
@@ -130,20 +131,6 @@ class GleEntity(GleSchema):
         field_name_list = ",".join(field_name_list)
         return field_name_list
 
-    async def push_entity(self, entity: dict):
-
-        info, status = await self.async_session.post(
-            url=f"{self.gle_user_config.apiServerHost}/rest/{self.entity}/add",
-            gle_config=self.gle_user_config.dict(),
-            ssl=False,
-            json=entity,
-            func=self.request_response_callback)
-        if info["status"] == True:
-            logger.info(f"写回成功 id->{entity['id']}")
-            logger.info(entity)
-            return info
-        else:
-            logger.info(f"写回失败 id->{entity['id']} {info}")
 
 
 
@@ -152,43 +139,4 @@ class GleEntity(GleSchema):
 
 
 
-if __name__ == '__main__':
-    # asyncio.run(GleEntity(
-    #     {
-    #         "apiServerHost": "https://www.cgladvisory.com",
-    #         "aesKey": "eae48bfe137cc656",
-    #         "account": "system@wearecgl.com"
-    #     }
-    # ).run("candidate"))
 
-    # recent = "1"
-    # unit = "year"
-    # asyncio.run(GleEntity(
-    #     {
-    #         "apiServerHost": "https://fsgtest.gllue.net",
-    #         "aesKey": "824531e8cad2a287",
-    #         "account": "api@fsg.com.cn"
-    #     },
-    #     {
-    #         "entity": "candidate",
-    #         "recent": recent,
-    #         "unit": unit,
-    #         "gql": None,
-    #     }
-    # ).run())
-
-    recent = "1"
-    unit = "year"
-    asyncio.run(GleEntity(
-        {
-            "apiServerHost": "https://fsgtest.gllue.net",
-            "aesKey": "824531e8cad2a287",
-            "account": "api@fsg.com.cn"
-        },
-        {
-            "entity": "candidate",
-            "recent": recent,
-            "unit": unit,
-            "gql": None,
-        }
-    ).run())

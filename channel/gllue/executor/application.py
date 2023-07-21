@@ -5,7 +5,7 @@ import requests
 from loguru import logger
 
 from channel.gllue.database.executor.executor_application import DataBaseExecutorApplication
-from channel.gllue.application.applicaiton import GlePullApplication
+from channel.gllue.pull.application.applicaiton import GlePullApplication
 from channel.gllue.config import Settings
 from middleware.mdwConvert.convert_middleware import ConvertMiddleware
 convert_middleware = ConvertMiddleware()

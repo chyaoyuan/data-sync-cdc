@@ -1,9 +1,8 @@
 import asyncio
 
-import requests
 from loguru import logger
 
-from channel.gllue.application.applicaiton import GlePullApplication
+from channel.gllue.pull.application.applicaiton import GlePullApplication
 
 
 async def sync_candidate_pull_and_push():
