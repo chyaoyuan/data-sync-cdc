@@ -1,7 +1,7 @@
 import json
 
 import requests
-with open("project_info_list.jsonl", "w+") as f:
+with open("project_id/new_project_info_list.jsonl", "w+") as f:
     offset = 10
     while True:
         url = f"https://www.linkedin.com/talent/api/graphql?variables=(query:(sourcingChannelTypes:List(),hiringProjectStates:List(ACTIVE,CLOSED),hiringProjectTypes:List(ATS,CAMPAIGN,JOB_POSTING,RECRUITER)),facets:List((facetType:OWNER,values:List(urn%3Ali%3Ats_seat%3A139543193),maximumNumberOfValues:100),(facetType:GEO_LOCATIONS,maximumNumberOfValues:100),(facetType:STATE,maximumNumberOfValues:100),(facetType:JOB_POSTING_STATE,maximumNumberOfValues:100),(facetType:JOB_POSTING_SOURCE_TYPE,maximumNumberOfValues:100)),sortBy:(sortByType:FAVORITE,sortOrder:DESCENDING,secondarySortByType:LAST_ENGAGED_TIME,secondarySortOrder:DESCENDING),start:{offset})&queryId=talentHiringProjects.e2c34a76dd543148733dc3d52c383cab"
@@ -29,6 +29,7 @@ with open("project_info_list.jsonl", "w+") as f:
         response = requests.request("GET", url, headers=headers)
         if response.status_code != 200:
             print(f"11111->{offset}")
+            response.json()["data"]["data"]["hiringProjectsByCriteria"].get("*elements")
             break
         f.write(json.dumps(response.json(), ensure_ascii=False))
         f.write('\n')

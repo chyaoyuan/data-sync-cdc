@@ -2,6 +2,7 @@ from sqlalchemy import Table, Column, Integer, String, BigInteger, Date, DateTim
     LargeBinary, TEXT, UniqueConstraint, Index
 from entityStorageServer.settings.settings import Settings
 from entityStorageServer.database.base.application import Base
+from sqlalchemy.orm import relationship
 
 
 class EntityInfoStorage(Base):
@@ -28,13 +29,14 @@ class EntityInfoStorage(Base):
 
 class EntityConnectionStorage(Base):
     __tablename__ = "entity_connection"
-    id = Column(String(600), primary_key=True, index=True, comment="自增长")
-    ms_entity_type = Column(String(600), nullable=False, comment="麦穗实体名称")
-    open_id = Column(String(600), primary_key=True, index=True, comment="自增长")
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="自增长")
+    open_id = Column(Integer, nullable=False, comment="Open ID")
+    mesoor_entity_type = Column(String(600), nullable=False, comment="mesoor实体类型")
     tenant = Column(String(600), nullable=False, comment="租户")
-    # entity 表里的ID
-    entity_id = Column(JSON, nullable=False, comment="实体内容")
-    is_delete = Column(BOOLEAN, comment="软删除")
+    # Define the foreign key relationship with EntityInfoStorage table
+    entity_table_id = Column(Integer, ForeignKey('entity.id'), nullable=False)
+    entity_info = relationship('EntityInfoStorage', foreign_keys=[entity_table_id])
+    is_delete = Column(BOOLEAN, nullable=False, comment="软删除")
     create_at = Column(DateTime, server_default=func.now(), comment="创建时间")
     update_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
 
