@@ -1,4 +1,5 @@
 import asyncio
+from typing import Optional
 
 from loguru import logger
 
@@ -42,6 +43,33 @@ class GleJobOrder(GleSchema):
         i = BaseResponseModel(**info)
         logger.info("最大页数{}".format(i.totalpages))
         return i.totalpages
+
+    async def get_candidate_id_by_job_order_id(self, status_list: Optional[list] = None):
+        """
+        status_list用来确定同步这个职位下什么状态的简历，
+        以外服gllue前端为例
+        jobsubmission_status_kanban=
+        apply 应聘
+        longlist 加入项目
+        cvsent 简历推荐-全部
+        cvsent^non_feedback 简历推荐-未反馈
+        cvsent^feedbacked 简历推荐-已反馈
+        clientinterview-客户面试-全部
+        clientinterview^feedbacked-客户面试-已反馈
+        clientinterview^non_feedback 客户面试-未反馈
+        offersign-offer-全部
+        offersign^feedbacked_pass-offer-已接受
+        offersign^feedbacked_reject-offer-已拒绝
+        offersign^non_feedback-offer-未反馈
+        onboard-入职-全部
+        onboard^in_probation-入职-在试用期内
+        onboard^out_of_probation-入职-已过试用期
+        invoice-业绩分配-全部
+        invoice^approvaled-业绩分配-已审批
+        invoice^no_approval-业绩分配-未审批
+        reject-淘汰
+        """
+        pass
 
     async def run(self):
         await self.check_token()

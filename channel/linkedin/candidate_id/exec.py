@@ -6,13 +6,14 @@ from channel.linkedin.获取候选人详情.get_candidate_info import get_candid
 
 with open("/Users/chenjiabin/Project/data-sync-cdc/channel/linkedin/candidate_id/candidate_1.json","r") as f:
     full_candidate_list = json.loads(f.read())
-    print(len(set(full_candidate_list)))
+
+    logger.info(f"去重后的任务简历人员为{len(set(full_candidate_list))}")
 success_id_list = []
 with open("/Users/chenjiabin/Project/data-sync-cdc/channel/linkedin/candidate_id/success_candidate_id.jsonl", "r") as f:
     while _id := f.readline():
         _id = json.loads(_id)
         success_id_list.append(_id["id"])
-    print(len(set(success_id_list)))
+    logger.info(f"去重后的已完成简历人员为{len(set(success_id_list))}")
 
 run_list = list(set(full_candidate_list)-set(success_id_list))
 logger.info(f"剩余{len(run_list)}")
