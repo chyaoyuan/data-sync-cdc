@@ -10,8 +10,8 @@ class GleSchema(BaseApplication):
 
     # 获取schema
     async def get_schema(self, type_name: str):
-        url = GleSchemaUrl(typeName=type_name, apiServerHost=self.gle_user_config.apiServerHost).get_schema
-        # channel/gllue/application/Schema/data/candidate_schema.json
+        url = self.settings.get_entity_schema_url.format(apiServerHost=self.gle_user_config.apiServerHost,entityType=type_name)
+        # example: channel/gllue/application/Schema/data/candidate_schema.json
         res, status = await self.async_session.get(url=url,
                                                    ssl=False,
                                                    gle_config=self.gle_user_config.dict(),
@@ -21,7 +21,6 @@ class GleSchema(BaseApplication):
     async def get_field_name_list(self, type_name: str):
         res = await self.get_schema(type_name=type_name)
         field_name_list = [_["name"] for _ in res]
-        # logger.info(f"字段展示{typeName}->{field_name_list}")
         return field_name_list
 
     async def get_field_name_list_child(self, type_name: str):

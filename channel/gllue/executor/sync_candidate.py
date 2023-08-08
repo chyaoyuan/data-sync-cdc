@@ -72,13 +72,13 @@ async def sync_candidate_pull_and_push(gle_user_config: dict, sync_config: dict)
             entity["locations"] = str(entity["locations"])
 
             # 判断变动
-            old_entity, status = await mid.entity_storage_mid.entity_storage_app.get_entity({"tenant": "wf-test","source_entity_type":"candidate","source_id":gle_id})
-            if status == 200 and old_entity.get("latestResume") and entity.get("latestResume"):
-                old_entity_last_resume = old_entity.get("latestResume")
-                new_entity_last_resume = entity.get("latestResume")
-                if old_entity_last_resume == new_entity_last_resume:
-                    logger.info(f"gle {gle_id}没有更新简历附件 跳过")
-                    continue
+            # old_entity, status = await mid.entity_storage_mid.entity_storage_app.get_entity({"tenant": "wf-test","source_entity_type":"candidate","source_id":gle_id})
+            # if status == 200 and old_entity.get("latestResume") and entity.get("latestResume"):
+            #     old_entity_last_resume = old_entity.get("latestResume")
+            #     new_entity_last_resume = entity.get("latestResume")
+            #     if old_entity_last_resume == new_entity_last_resume:
+            #         logger.info(f"gle {gle_id}没有更新简历附件 跳过")
+            #         continue
 
             if entity.get("latestResume") or None:
                 latest_resume_info = entity.get("latestResume")
@@ -131,10 +131,11 @@ async def sync_candidate_pull_and_push(gle_user_config: dict, sync_config: dict)
 
                         # get company id
                         if info:
+                            pass
                             # 写回成功
-                            await mid.entity_storage_mid.entity_storage_app.put_entity(
-                                {"tenant": "wf-test", "source_entity_type": "candidate", "source_id": gle_id,
-                                 "payload": entity})
+                            # await mid.entity_storage_mid.entity_storage_app.put_entity(
+                            #     {"tenant": "wf-test", "source_entity_type": "candidate", "source_id": gle_id,
+                            #      "payload": entity})
                         #     experience_list = info.get("current_message", {}).get("candidateexperience", [])
                         #     for experience in experience_list:
                         #         client_list = experience.get("current_message", {}).get("client",[])

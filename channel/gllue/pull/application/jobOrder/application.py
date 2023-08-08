@@ -13,9 +13,8 @@ class GleJobOrder(GleSchema):
 
     def __init__(self, gle_user_config: dict):
         super().__init__(gle_user_config)
-        self.b = []
 
-    async def _get_job_info(self, page: int, field_name_list: str):
+    async def get_job_info(self, page: int, field_name_list: str, check:bool = False):
         res, status = await self.async_session.get(
             url="https://fsgtest.gllue.net/rest/joborder/simple_list_with_ids",
             gle_config=self.gle_user_config.dict(),
@@ -25,21 +24,14 @@ class GleJobOrder(GleSchema):
                     "paginate_by": self.total_count,
                     'page': page},
             func=self.request_response_callback)
-        for job in res["result"]["joborder"]:
-            logger.info(f"{job['id']}===={job}")
-
-        return res
-
-    async def get_job_info(self, page: int, field_name_list: str):
-
-        job_list = await self._get_job_info(page, field_name_list)
-        logger.info(job_list)
-        logger.info(f"获取到第{page}页")
+        if check:
+            return res
+        return [job for job in res["result"]["joborder"]]
 
     async def get_max_page(self) -> int:
         field_name_list = await self.get_field_name_list("joborder")
         field_name_list = ",".join(field_name_list)
-        info = await self._get_job_info(page=1, field_name_list=field_name_list)
+        info = await self.get_job_info(page=1, field_name_list=field_name_list,check=True)
         i = BaseResponseModel(**info)
         logger.info("最大页数{}".format(i.totalpages))
         return i.totalpages
@@ -77,15 +69,22 @@ class GleJobOrder(GleSchema):
         field_name_list = await self.get_field_name_list("Candidate")
         field_name_list.append("tags")
         field_name_list = ",".join(field_name_list)
-        await asyncio.gather(
-            *[
-                self._get_job_info(page=_, field_name_list=field_name_list) for _ in range(1, max_page+1)
-            ]
-        )
-        return self.b
+        task_list = [asyncio.create_task(self.get_job_info(page=index, field_name_list=field_name_list)) for index in range(1, max_page+1)]
+        return task_list
+        # for task in asyncio.as_completed(task_list):
+        #     job_list: list = await task
+        #     for job in job_list:
+        #         print(job)
 
 
 if __name__ == '__main__':
+    _sync_config = {
+        "entity": "candidate",
+        "recent": "3",
+        "unit": "day",
+        "fieldName": "lastUpdateDate__lastUpdateDate__day_range",
+        "gql": None,
+    }
     asyncio.run(GleJobOrder(
         {
             "apiServerHost": "https://fsgtest.gllue.net",

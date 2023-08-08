@@ -7,13 +7,16 @@ from channel.gllue.pull.application.base.model import GleURL, GleUserConfig
 from channel.gllue.session.gllue_aiohttp_session import GlHoMuraSession
 
 
-class BaseApplication:
+class GleUrlConfig:
+    get_entity_url = "{apiServerHost}/rest/{entityType}/simple_list_with_ids"
+    get_entity_schema_url = "{apiServerHost}/rest/custom_field/{entityType}"
 
+class BaseApplication:
     def __init__(self, gle_user_config: dict):
         self.async_session: GlHoMuraSession = GlHoMuraSession(
             aiohttp.ClientSession, retry_when=lambda x: not isinstance(x, asyncio.exceptions.TimeoutError)
         )
-        self.settings = ""
+        self.settings = GleUrlConfig
         self.gle_user_config: GleUserConfig = GleUserConfig(**gle_user_config)
         self.gle_url = GleURL(GleUserConfig(**gle_user_config).apiServerHost)
 

@@ -41,7 +41,7 @@ class GleEntity(GleSchema):
 
     async def _get_candidate_info(self, page: int, field_name_list: str, check: bool):
         res, status = await self.async_session.get(
-            url=f"{self.gle_user_config.apiServerHost}/rest/{self.entity}/simple_list_with_ids",
+            url=self.settings.get_entity_url.format(entityType=self.entity,apiServerHost=self.gle_user_config.apiServerHost),
             gle_config=self.gle_user_config.dict(),
             ssl=False,
             params={"fields": field_name_list,

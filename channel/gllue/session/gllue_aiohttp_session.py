@@ -24,6 +24,7 @@ class GlHoMuraSession:
         self.exception_class = exception_class
         self.exception_kwargs = exception_kwargs
 
+
     async def request(
         self, method: str, url: StrOrURL, func: Callable, **kwargs
     ):
