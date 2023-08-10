@@ -1,5 +1,7 @@
 import asyncio
 
+from loguru import logger
+
 from channel.gllue.pull.application.schema.model import GleSchemaUrl
 from channel.gllue.pull.application.base.application import BaseApplication
 
@@ -8,18 +10,19 @@ class GleSchema(BaseApplication):
     def __init__(self, gle_user_config: dict):
         super().__init__(gle_user_config)
 
-    # 获取schema
     async def get_schema(self, type_name: str):
-        url = self.settings.get_entity_schema_url.format(apiServerHost=self.gle_user_config.apiServerHost,entityType=type_name)
+        # 获取schema
+        url = self.settings.get_entity_schema_url.format(apiServerHost=self.gle_user_config.apiServerHost, entityType=type_name).lower()
         # example: channel/gllue/application/Schema/data/candidate_schema.json
-        res, status = await self.async_session.get(url=url,
-                                                   ssl=False,
-                                                   gle_config=self.gle_user_config.dict(),
-                                                   func=self.request_response_callback)
+        res, status = await self.async_session.get(url=url, ssl=False, func=self.request_response_callback)
+
+        if isinstance(res, dict) and res["message"]:
+            raise Exception(f"获取gleSchema失败->{type_name} {status} {url} {res}")
         return res
 
     async def get_field_name_list(self, type_name: str):
         res = await self.get_schema(type_name=type_name)
+        logger.info(res)
         field_name_list = [_["name"] for _ in res]
         return field_name_list
 

@@ -11,19 +11,24 @@ class GleUrlConfig:
     get_entity_url = "{apiServerHost}/rest/{entityType}/simple_list_with_ids"
     get_entity_schema_url = "{apiServerHost}/rest/custom_field/{entityType}"
 
+
 class BaseApplication:
     def __init__(self, gle_user_config: dict):
-        self.async_session: GlHoMuraSession = GlHoMuraSession(
-            aiohttp.ClientSession, retry_when=lambda x: not isinstance(x, asyncio.exceptions.TimeoutError)
-        )
+
         self.settings = GleUrlConfig
         self.gle_user_config: GleUserConfig = GleUserConfig(**gle_user_config)
         self.gle_url = GleURL(GleUserConfig(**gle_user_config).apiServerHost)
 
+        self.async_session: GlHoMuraSession = GlHoMuraSession(
+            client_session=aiohttp.ClientSession, gle_user_config=self.gle_user_config.dict(), retry_when=lambda x: not isinstance(x, asyncio.exceptions.TimeoutError)
+        )
+        self.semaphore = asyncio.Semaphore(20)
+
     @staticmethod
     async def request_response_callback(res: aiohttp.ClientResponse):
         if res.status != 200:
-            return await res.text(), res.status
+            raise Exception(f"{res.status} {await res.text()}")
+            # return await res.text(), res.status
         return await res.json(), res.status
 
     @staticmethod
@@ -48,7 +53,6 @@ class BaseApplication:
         res, status = await self.async_session.get(self.gle_url.check,
                                                     params={"fields": "__name__%2Ccitys%2CjobTitle%2CtotalCount%2CjobStatus%2CopenDate%2Cbu____name__%2ClineManager__user%2Cjoborderuser_set__user____name__%2CaddedBy__user%2CdateAdded"},
                                                     ssl=False,
-                                                    gle_config=self.gle_user_config.dict(),
                                                     func=self.request_response_callback)
 
 

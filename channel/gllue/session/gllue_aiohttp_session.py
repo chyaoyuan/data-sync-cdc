@@ -1,5 +1,5 @@
 import urllib.parse
-
+from urllib.parse import urlencode
 import aiohttp
 import asyncio
 from loguru import logger
@@ -13,7 +13,7 @@ from channel.gllue.session.create_token import private_token
 
 class GlHoMuraSession:
     def __init__(
-            self, client_session: Type[aiohttp.ClientSession], *, retry_time: int = 3,
+            self, client_session: Type[aiohttp.ClientSession], gle_user_config: dict, *, retry_time: int = 3,
             retry_interval: Optional[int] = None, retry_when: Optional[Callable] = None,
             exception_class: Optional[Any] = None, exception_kwargs: Optional[dict] = None
     ):
@@ -23,18 +23,21 @@ class GlHoMuraSession:
         self.retry_when = retry_when
         self.exception_class = exception_class
         self.exception_kwargs = exception_kwargs
-
+        self.gle_user_config = gle_user_config
 
     async def request(
         self, method: str, url: StrOrURL, func: Callable, **kwargs
     ):
         async with self.client_session() as session:
-            token = private_token(kwargs.pop("gle_config"))
+            token = private_token(self.gle_user_config)
+            # print(urllib.parse.quote(token))
             params = kwargs["params"] if "params" in kwargs.keys() else {}
-            params["gllue_private_token"] = urllib.parse.quote(token)
+            params["gllue_private_token"] = token
             kwargs["params"] = params
+            # kwargs.pop("params")
             last_error = Exception("")
-            url = url + f"?gllue_private_token={urllib.parse.quote(token)}"
+            url = url + f"?{urlencode(params)}"
+            # url = url + "?" + urlencode({"gllue_private_token": token})
             for i in range(self.retry_time):
                 try:
                     res = await session.request(method.upper(), url, **kwargs)
@@ -84,9 +87,7 @@ async def callback(res: aiohttp.ClientResponse) -> tuple:
     if res.status == 200:
         return res.status, await res.json()
     return res.status, await res.text()
-session = GlHoMuraSession(
-        aiohttp.ClientSession, retry_when=lambda x: not isinstance(x, asyncio.exceptions.TimeoutError)
-    )
+
 
 # async def main():
 #     class D:

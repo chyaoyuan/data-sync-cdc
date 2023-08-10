@@ -10,26 +10,32 @@ from channel.gllue.pull.application.base.model import BaseResponseModel
 class GleJobOrder(GleSchema):
     # 每页最大条数
     total_count: int = 5
+    entity = "joborder"
 
     def __init__(self, gle_user_config: dict):
         super().__init__(gle_user_config)
 
     async def get_job_info(self, page: int, field_name_list: str, check:bool = False):
-        res, status = await self.async_session.get(
-            url="https://fsgtest.gllue.net/rest/joborder/simple_list_with_ids",
-            gle_config=self.gle_user_config.dict(),
-            ssl=False,
-            params={"fields": field_name_list,
-                    "ordering": "-lastUpdateDate",
-                    "paginate_by": self.total_count,
-                    'page': page},
-            func=self.request_response_callback)
-        if check:
-            return res
-        return [job for job in res["result"]["joborder"]]
+        async with self.semaphore:
+            res, status = await self.async_session.get(
+                url=f"{self.gle_user_config.apiServerHost}/rest/{self.entity}/simple_list_with_ids",
+                ssl=False,
+                params={"fields": field_name_list,
+                        "ordering": "-lastUpdateDate",
+                        "paginate_by": self.total_count,
+                        'page': page},
+                func=self.request_response_callback)
+            if check:
+                return res
+            try:
+                return [job for job in res["result"][self.entity]]
+            except Exception:
+                logger.error(status)
+                logger.error(res)
 
     async def get_max_page(self) -> int:
-        field_name_list = await self.get_field_name_list("joborder")
+        field_name_list = await self.get_field_name_list(self.entity)
+        print(field_name_list)
         field_name_list = ",".join(field_name_list)
         info = await self.get_job_info(page=1, field_name_list=field_name_list,check=True)
         i = BaseResponseModel(**info)
@@ -66,8 +72,8 @@ class GleJobOrder(GleSchema):
     async def run(self):
         await self.check_token()
         max_page: int = await self.get_max_page()
-        field_name_list = await self.get_field_name_list("Candidate")
-        field_name_list.append("tags")
+        field_name_list = await self.get_field_name_list("joborder")
+
         field_name_list = ",".join(field_name_list)
         task_list = [asyncio.create_task(self.get_job_info(page=index, field_name_list=field_name_list)) for index in range(1, max_page+1)]
         return task_list
@@ -78,13 +84,13 @@ class GleJobOrder(GleSchema):
 
 
 if __name__ == '__main__':
-    _sync_config = {
-        "entity": "candidate",
-        "recent": "3",
-        "unit": "day",
-        "fieldName": "lastUpdateDate__lastUpdateDate__day_range",
-        "gql": None,
-    }
+    # _sync_config = {
+    #     "entity": "candidate",
+    #     "recent": "3",
+    #     "unit": "day",
+    #     "fieldName": "lastUpdateDate__lastUpdateDate__day_range",
+    #     "gql": None,
+    # }
     asyncio.run(GleJobOrder(
         {
             "apiServerHost": "https://fsgtest.gllue.net",
