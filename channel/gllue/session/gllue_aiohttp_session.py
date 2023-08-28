@@ -30,14 +30,14 @@ class GlHoMuraSession:
     ):
         async with self.client_session() as session:
             token = private_token(self.gle_user_config)
-            # print(urllib.parse.quote(token))
+            print(urllib.parse.quote(token))
             params = kwargs["params"] if "params" in kwargs.keys() else {}
             params["gllue_private_token"] = token
+            params = {k: v for k, v in params.items() if v}
             kwargs["params"] = params
             # kwargs.pop("params")
             last_error = Exception("")
             url = url + f"?{urlencode(params)}"
-            # url = url + "?" + urlencode({"gllue_private_token": token})
             for i in range(self.retry_time):
                 try:
                     res = await session.request(method.upper(), url, **kwargs)

@@ -1,4 +1,5 @@
 import asyncio
+from typing import Optional
 
 from loguru import logger
 
@@ -9,6 +10,7 @@ from channel.gllue.pull.application.base.application import BaseApplication
 class GleSchema(BaseApplication):
     def __init__(self, gle_user_config: dict):
         super().__init__(gle_user_config)
+        self.init_job_order_schema: Optional[list] = []
 
     async def get_schema(self, type_name: str):
         # 获取schema
@@ -22,7 +24,6 @@ class GleSchema(BaseApplication):
 
     async def get_field_name_list(self, type_name: str):
         res = await self.get_schema(type_name=type_name)
-        logger.info(res)
         field_name_list = [_["name"] for _ in res]
         return field_name_list
 
@@ -62,6 +63,11 @@ class GleSchema(BaseApplication):
                 for map_key_config in map_key_config_set:
                     if map_key_config in attachment.keys():
                         attachment[map_key_config] = host+attachment[map_key_config]
+
+    async def get_init_schema(self):
+        url = f"{self.gle_user_config.apiServerHost}/rest/custom_field/joborder/detail/get_type?fields=client,joborderuser_set,gllueext_select_1640167799635,jobTitle,totalCount,jobordercontact_set,citys,function,annualSalary,gllueextcharge,priority,openDate,closeDate,jobStatus,addedBy,dateAdded,gllueextEstimateFee,gllueextFeerate,tags,gllueextMinimumFee,description,gllueextinvoiceassignment,gllueextBDcreditrate,gllueextassign_no,gllueextImportData,gllueextoldcontact,gllueextAssign_status,gllueextJobfunction,gllueextoldcity,gllueextoldconsultant,gllueextoldmember,gllueextJobfunctiondetail,gllueextJoblevel,gllueextsubJoblevel,gllueextIndustry,gllueextSubIndustry,gllueextpracticeID,gllueextPractice,gllueextbdname,gllueextbdpratice,gllueextbdoffice,gllueextTextbox23,gllueextAssignmentCreatedDate,gllueextAssign_datestatus,gllueextestRevenue,gllueextdoc_flatfeeper&adv_search_root=joborder"
+        res, status = await self.async_session.get(url, ssl=False,func=self.request_response_callback)
+        self.init_job_order_schema = res
 
 
 if __name__ == '__main__':

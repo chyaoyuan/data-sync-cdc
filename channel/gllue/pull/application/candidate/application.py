@@ -2,53 +2,46 @@ import asyncio
 import base64
 from cgi import parse_header
 from typing import Optional, Literal, List
-from urllib.parse import unquote
+from urllib.parse import unquote, urlencode
 from loguru import logger
 from pydantic import BaseModel, Field
 from datetime import datetime
 from urllib.parse import quote
+
+from channel.gllue.pull.application.model.sync_model import SyncConfig
 from channel.gllue.pull.application.schema.application import GleSchema
 from channel.gllue.pull.application.base.model import BaseResponseModel
 from middleware.settings.entitySorageSettings import parse_time_interval
 
 
-class SyncConfig(BaseModel):
-    entity: str
-    recent: int = Field(..., description="近 n 天/月/年", example=10)
-    unit: Literal['day', 'month', 'year'] = Field(default="day", description="单位", example="day")
-    fieldName: Literal['lastContactDate__lastContactDate__day_range', 'lastUpdateDate__lastUpdateDate__day_range']= Field( description="时间段筛选的字段，如最后联系时间、最后更新时间")
-    gql: Optional[str] = Field(default=None, description="可以指定gllueGQL")
-    # syncExtraFields: Optional[str] = Field(default=)
-
-
 class GleEntity(GleSchema):
     # 每页最大条数
     total_count: int = 100
+    entity: str = "candidate".lower()
 
     def __init__(self, gle_user_config: dict, sync_config: dict):
         super().__init__(gle_user_config)
         self.sync_config = SyncConfig(**sync_config)
-        self.entity = self.sync_config.entity
+        self.entityName = self.sync_config.entityName
         # 如果没配置GQL使用默认的时间GQL
-        if self.sync_config.unit and self.sync_config.recent and not self.sync_config.gql:
-            start_time, end_time = parse_time_interval({"unit": self.sync_config.unit, "recent": self.sync_config.recent})
-            self.gql = quote(self.sync_config.fieldName + "=" + start_time + "%2C" + end_time)
-
-        else:
-            self.gql = self.sync_config.gql
+        # if self.sync_config.unit and self.sync_config.recent and not self.sync_config.gql:
+        #     start_time, end_time = parse_time_interval({"unit": self.sync_config.unit, "recent": self.sync_config.recent})
+        #     self.gql = quote(self.sync_config.fieldName + "=" + start_time + "%2C" + end_time)
+        #
+        # else:
+        #     self.gql = self.sync_config.gql
 
         self.add_child_field_list = ["candidateexperience", "candidatequalification","candidatelanguage","candidateproject"]
 
-    async def _get_candidate_info(self, page: int, field_name_list: str, check: bool):
+    async def _get_candidate_info(self, page: int, field_name_list: str, check: bool = False, overwrite_gql: Optional[str] = None):
         res, status = await self.async_session.get(
-            url=self.settings.get_entity_url.format(entityType=self.entity,apiServerHost=self.gle_user_config.apiServerHost),
-            gle_config=self.gle_user_config.dict(),
+            url=self.settings.get_entity_url.format(entityType=self.entity ,apiServerHost=self.gle_user_config.apiServerHost),
             ssl=False,
             params={"fields": field_name_list,
                     "ordering": "-lastUpdateDate",
                     "paginate_by": self.total_count,
                     'page': page,
-                    'gql': self.gql
+                    'gql': overwrite_gql if overwrite_gql else self.sync_config.gql
                     },
             func=self.request_response_callback)
         if check:
@@ -105,21 +98,19 @@ class GleEntity(GleSchema):
         candidate_list = await self._get_candidate_info(page, field_name_list, check=False)
         return candidate_list
 
-    async def get_max_page(self) -> int:
+    async def get_max_page(self, overwrite_gql: Optional[str] = None) -> int:
 
         field_name_list = ["id"]
         field_name_list = ",".join(field_name_list)
-        info = await self._get_candidate_info(page=1, field_name_list=field_name_list, check=True)
-        logger.info(info)
+        info = await self._get_candidate_info(page=1, field_name_list=field_name_list, check=True,overwrite_gql=overwrite_gql)
         i = BaseResponseModel(**info)
-        logger.info("最大页数{}".format(i.totalpages))
         return i.totalpages
 
     async def initialize_field(self,
                   add_field_list: Optional[List[str]] = ["attachments", "tags","functions","industrys","locations"],
                   add_child_field_list: Optional[List[str]] = ["candidateexperience","candidatequalification","candidatelanguage","candidateproject"]):
 
-        field_name_list = await self.get_field_name_list(self.entity)
+        field_name_list = await self.get_field_name_list(self.entityName)
         for _ in add_child_field_list:
             field_name_list_child = await self.get_field_name_list_child(_)
             field_name_list = field_name_list + field_name_list_child
@@ -130,6 +121,42 @@ class GleEntity(GleSchema):
 
         field_name_list = ",".join(field_name_list)
         return field_name_list
+
+    async def get_candidates_by_gql(self, gql: dict):
+        """
+        通过GQL搜索公司
+        """
+        # mobile=12345&email=test@gllue.com
+        gql_str = urlencode(gql)
+        print(gql_str)
+        max_page: int = await self.get_max_page(gql_str)
+        field_name_list = await self.get_field_name_list(self.entity)
+        field_name_list = ",".join(field_name_list)
+        task_list = [asyncio.create_task(
+            self._get_candidate_info(page=index, field_name_list=field_name_list, overwrite_gql=gql_str)) for index in
+                     range(1, max_page + 1)]
+        return task_list
+
+    async def get_candidate_by_gql(self, gql: dict):
+        candidate_info_task_list = await self.get_candidates_by_gql(gql)
+        for candidate_task in asyncio.as_completed(candidate_info_task_list):
+            for candidate in await candidate_task:
+                return candidate
+
+    async def get_candidate_by_contact_gql(self, gql: dict):
+        gql = {k: v for k, v in gql.items() if v}
+        candidate_info_task_list = await self.get_candidates_by_gql(gql)
+        for candidate_task in asyncio.as_completed(candidate_info_task_list):
+            for candidate in await candidate_task:
+                return candidate
+        candidate_info_task_list = await self.get_candidates_by_gql(gql["mobile"])
+        for candidate_task in asyncio.as_completed(candidate_info_task_list):
+            for candidate in await candidate_task:
+                return candidate
+        candidate_info_task_list = await self.get_candidates_by_gql(gql["email"])
+        for candidate_task in asyncio.as_completed(candidate_info_task_list):
+            for candidate in await candidate_task:
+                return candidate
 
 
 
