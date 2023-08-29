@@ -24,7 +24,7 @@ async def sync_gle_job_executor(gle_user_config: GleUserConfig, sync_config: Syn
     # gle 同步基础
     # 获取所有需要同步的实体名
     entity_name_list: list = [entity.entityName for entity in sync_config.childEntityList]
-    entity_name_list.append(sync_config.entityName)
+    entity_name_list.append("joborder")
     entity_name_list: list = list(set(entity_name_list))
     # 运行应用
     gle_pull_app = GlePullApplication(gle_user_config.dict(), sync_config.dict())

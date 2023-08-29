@@ -9,7 +9,7 @@ class EntityStorageSettings:
 
 def parse_time_interval(time_interval: dict):
     unit = time_interval["unit"]
-    recent = int(time_interval["recent"])
+    recent = int(time_interval["recent"])-1
 
     # 获取当前时间（中国时区）
     tz = pytz.timezone('Asia/Shanghai')

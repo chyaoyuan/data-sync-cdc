@@ -25,20 +25,7 @@ class GleJobOrder(GleSchema):
     def __init__(self, gle_user_config: dict, sync_config: dict):
         super().__init__(gle_user_config)
         self.sync_config = SyncConfig(**sync_config)
-
-        for field in ['lastContactDate__lastContactDate__day_range', 'lastUpdateDate__lastUpdateDate__day_range']:
-            if field in self.sync_config.gql:
-                raise Exception("GQL不允许配置时间参数 最后联系时间 及 最后更新时间 请在 recent和unit内指定")
-
-        start_time, end_time = parse_time_interval({"unit": self.sync_config.unit, "recent": self.sync_config.recent})
-
-        gql = {
-            **dict(parse_qsl(self.sync_config.gql)),
-            self.sync_config.timeFieldName: f"{start_time},{end_time}"
-        }
-        # https://www.cgladvisory.com/rest/joborder/list/facet?gql=jobStatus__s=Live&demandFacets=["client"]
-        self.execute_gql = urlencode(gql)
-        self.extra_fields_list: Optional[list] = self.sync_config.fieldNameList.split(",") if self.sync_config.fieldNameList else None
+        # self.extra_fields_list: Optional[list] = self.sync_config.fieldNameList.split(",") if self.sync_config.fieldNameList else None
 
     async def get_job_info(self, page: int, field_name_list: str, check: bool = False, overwrite_sql: Optional[str] = None):
         async with self.semaphore:
@@ -49,7 +36,7 @@ class GleJobOrder(GleSchema):
                         "ordering": "-lastUpdateDate",
                         "paginate_by": self.total_count,
                         'page': page,
-                        'gql': overwrite_sql if overwrite_sql else self.execute_gql},
+                        'gql': overwrite_sql if overwrite_sql else self.sync_config.gql},
                 func=self.request_response_callback)
             logger.info(overwrite_sql)
             if check:
@@ -112,8 +99,6 @@ class GleJobOrder(GleSchema):
         await self.check_token()
         max_page: int = await self.get_max_page()
         field_name_list = await self.get_field_name_list(self.entity)
-        if self.extra_fields_list:
-            pass
         field_name_list = list(set(field_name_list + (self.extra_fields_list if self.extra_fields_list else [])))
         print(field_name_list)
         field_name_list = ",".join(field_name_list)

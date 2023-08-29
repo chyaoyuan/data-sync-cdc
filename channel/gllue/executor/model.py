@@ -18,13 +18,21 @@ class ChildEntity(BaseModel):
 
 
 class SyncConfig(BaseModel):
-    entityName: str = Field(title="同步的实体类型", examples="jobOrder")
-    fieldNameList: Optional[str] = Field(default=None, description="实体同步的额外字段")
+    syncAttachment: Optional[bool] = Field(default=False, description="是否同步附件【只有候选人有附件】")
     convertId: Optional[str] = Field(default="Job:standard:2023_04_10_02_43_42")
-    gql: Optional[str] = Field(description="覆写谷露筛选条件")
-    recent: int = Field(title="同步数", examples=3)
-    unit: Literal['year', 'month', 'day'] = Field(description="recent的单位")
-    timeFieldName: Literal['lastContactDate__lastContactDate__day_range', 'lastUpdateDate__lastUpdateDate__day_range'] = Field(description="时间段筛选的字段，如最后联系时间、最后更新时间")
+    gql: Optional[str] = Field(default=None, description="覆写谷露筛选条件")
+    recent: Optional[int] = Field(default=None, title="同步数", examples=3)
+    unit: Optional[Literal['year', 'month', 'day']] = Field(default=None, description="recent的单位")
+    # 添加日期、MPC添加日期,最后更新时间、最近操作、最近联系
+    timeFieldName: Optional[
+        Literal[
+            'dateAdded__day_range',
+            'mpcDate__day_range',
+            'lastUpdateDate__day_range',
+            'latest_action__day_range',
+            'lastContactDate__day_range']] = Field(default=None, description="时间段筛选的字段，如添加日期、最后更新时间")
+    fieldList: Optional[list] = Field(default=[], description="同步该实体需要的额外字段(不需要请求gllueSchema)")
+    childFieldList: Optional[list] = Field(default=[], description="同步该实体需要的额外字段(需要请求gllueSchema)")
     childEntityList: List[ChildEntity] = Field(default=[], description="同步有关系的的子实体，如职位下的候选人")
 
 # Tip配置

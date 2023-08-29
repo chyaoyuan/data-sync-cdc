@@ -29,7 +29,6 @@ class GleSchema(BaseApplication):
 
     async def get_field_name_list_child(self, type_name: str):
         res = await self.get_schema(type_name=type_name)
-
         field_name_list = [type_name + "_set__" + _["name"] for _ in res]
         return list(set(field_name_list))
 
@@ -41,7 +40,6 @@ class GleSchema(BaseApplication):
         for field_name in field_list:
             if "_set__" in field_name:
                 child_field_name = field_name.split("_set__")[0]
-
                 _field_name_child_list.append(child_field_name)
         return _field_name_child_list
 
