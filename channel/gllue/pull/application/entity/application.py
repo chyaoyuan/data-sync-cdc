@@ -1,7 +1,7 @@
 # import asyncio
 # from typing import Literal
 #
-# from loguru import logger
+# from utils.logger import logger
 #
 # from channel.gllue.pull.application.schema.application import GleSchema
 # from channel.gllue.pull.application.base.model import BaseResponseModel

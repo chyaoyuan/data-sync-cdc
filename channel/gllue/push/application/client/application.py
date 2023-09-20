@@ -1,6 +1,6 @@
 import json
 import aiohttp
-from loguru import logger
+from utils.logger import logger
 
 from channel.gllue.push.application.base.application import BaseApplication
 

@@ -2,7 +2,7 @@ import json
 import aiohttp
 import urllib.parse as urlparse
 
-from loguru import logger
+from utils.logger import logger
 from middleware.config import Settings
 from middleware.exception import MiddlewareException
 from middleware.external.base.application import Application as BaseApplication
@@ -59,9 +59,10 @@ class Application(BaseApplication):
             }
         )
         if status != 200:
-            raise MiddlewareException("{} 存储实体 {} {} 失败, status: {}, response: {}={}".format(
-                request_info.tenant, request_info.entityType, request_info.entityId, status, response, request_info.entity
-            ))
+            # raise MiddlewareException("{} 存储实体 {} {} 失败, status: {}, response: {}={}".format(
+            #     request_info.tenant, request_info.entityType, request_info.entityId, status, response, request_info.entity
+            # ))
+            pass
         logger.info("{} 存储实体 {} {} 成功".format(request_info.tenant, request_info.entityType, request_info.entityId))
 
     @staticmethod
@@ -92,8 +93,6 @@ class Application(BaseApplication):
             logger.info("{} 删除实体 {} id {} 实体不存在".format(
                 request_info.tenant, request_info.entityType, request_info.entityId
             ))
-
-
 
 
 def get_app():

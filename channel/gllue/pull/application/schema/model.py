@@ -1,4 +1,7 @@
 from enum import Enum
+from typing import Literal, Union
+
+from pydantic import BaseModel, Extra
 
 
 class Entity(Enum):
@@ -6,7 +9,19 @@ class Entity(Enum):
     Position = "Position"
 
 
-class GleSchemaUrl:
-    def __init__(self, typeName: str, apiServerHost: str):
-        # 获取所有字段
-        self.get_schema: str = "{apiServerHost}/rest/custom_field/{typeName}".format(typeName=typeName,apiServerHost=apiServerHost)
+class GleFieldType(str,Enum):
+    foreignkey = "foreignkey"
+    char = "char"
+    boolean = "boolean"
+    integer = "integer"
+    text = "text"
+    date = "date"
+    decimal = "decimal"
+
+
+class SchemaFieldInfo(BaseModel, extra=Extra.allow):
+    """schema的每个字段详情"""
+    name: str
+    type: GleFieldType
+
+

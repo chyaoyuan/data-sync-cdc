@@ -1,6 +1,6 @@
 import asyncio
 from typing import Type, Literal
-from loguru import logger
+from utils.logger import logger
 
 from middleware.settings.settings import Settings
 from middleware.tagging.base.application import BaseApplication

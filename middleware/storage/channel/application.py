@@ -1,6 +1,6 @@
 import aiohttp
 
-from loguru import logger
+from utils.logger import logger
 from middleware.exception import MiddlewareException
 from middleware.storage.channel.model import ChannelBody
 from middleware.storage.base.application import Application as BaseApplication

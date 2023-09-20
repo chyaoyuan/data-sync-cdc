@@ -35,12 +35,14 @@ elif sync == "cgl":
         "entityName": "jobOrder",
         "recent": "30",
         "unit": "year",
+        "convertTaskId": "",
         "timeFieldName": "lastUpdateDate__day_range",
-        "gql": "jobStatus__s=Live",
+        # "gql": "jobStatus__s=Live",
         "fieldNameList": "operation,id,client__name,client__candidate_authorization_remind,islimited,jobTitle,client__name,client__type,client____name__,client__is_parent,client__parent,client__parent__id,client__parent__type,client,jobStatus,longlist_count,cvsent_count,clientinterview_count,offersign_count,addedBy__user,addedBy__type,addedBy,joborderuser_set__user____name__,joborderuser_set__type,joborderuser_set,gllueextcharge,workflow_spec__addedBy____name__,workflow_spec__addedBy,dateAdded,__name__,citys,positionType,gllueextFeerate",
         "childEntityList": [{
             "gql": None,
-            "entityName": "jobSubMission"
+            "entityName": "jobSubMission",
+            "convertTaskId": ""
         }],
 
     }

@@ -16,11 +16,11 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
-  name: data-sync-v2-fuze-route-server
+  name: data-sync-route-server
   namespace: tip
 spec:
   selector:
-    app: data-sync-v2-fuze-route-server
+    app: data-sync-route-server
     tier: backend
   ports:
     - name: http

@@ -1,8 +1,9 @@
+import re
 import urllib.parse
 from urllib.parse import urlencode
 import aiohttp
 import asyncio
-from loguru import logger
+from utils.logger import logger
 from aiohttp.typedefs import StrOrURL
 from typing import Type, Callable, Optional, Any, Coroutine
 import time
@@ -26,21 +27,21 @@ class GlHoMuraSession:
         self.gle_user_config = gle_user_config
 
     async def request(
-        self, method: str, url: StrOrURL, func: Callable, **kwargs
+        self, method: str, url: StrOrURL, func: Callable, ssl=False, **kwargs
     ):
         async with self.client_session() as session:
-            token = private_token(self.gle_user_config)
-            # print(urllib.parse.quote(token))
-            params = kwargs["params"] if "params" in kwargs.keys() else {}
-            params["gllue_private_token"] = token
-            params = {k: v for k, v in params.items() if v}
-            kwargs["params"] = params
-            # kwargs.pop("params")
+            not_use_token = kwargs.pop("not_use_token", None)
+            if not not_use_token:
+                params = kwargs["params"] if "params" in kwargs.keys() else {}
+                token = private_token(self.gle_user_config)
+                params["gllue_private_token"] = token
+                params = {k: v for k, v in params.items() if v}
+                kwargs["params"] = params
+            url = f"{self.gle_user_config['apiServerHost']}{url}"
             last_error = Exception("")
-            url = url + f"?{urlencode(params)}"
             for i in range(self.retry_time):
                 try:
-                    res = await session.request(method.upper(), url, **kwargs)
+                    res = await session.request(method.upper(), url, ssl=ssl, **kwargs)
                     break
                 except Exception as _e:
                     if self.exception_class is None or self.exception_class is Exception:
@@ -68,6 +69,7 @@ class GlHoMuraSession:
         return result
 
     async def get(self, url: StrOrURL, *, func: Callable, allow_redirects: bool = True, **kwargs):
+
         return await self.request('get', url, func=func, allow_redirects=allow_redirects, **kwargs)
 
     async def post(self, url: StrOrURL, *, func: Callable, data: Any = None, **kwargs):

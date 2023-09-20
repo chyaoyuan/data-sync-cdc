@@ -2,20 +2,24 @@ import asyncio
 from typing import Optional
 
 import aiohttp
-from loguru import logger
+from utils.logger import logger
 
 from channel.gllue.pull.application.base.model import GleURL, GleUserConfig
 from channel.gllue.session.gllue_aiohttp_session import GlHoMuraSession
 
 
 class GleUrlConfig:
-    get_entity_url = "{apiServerHost}/rest/{entityType}/simple_list_with_ids"
-    get_entity_schema_url = "{apiServerHost}/rest/custom_field/{entityType}"
+    get_entity_url = "/rest/{entityType}/simple_list_with_ids"
+    get_entity_schema_url = "/rest/custom_field/{entityType}"
+    # 系统参数的数据字典(来自文档)
+    get_system_model_url = "/rest/custom_field/{entityType}/list"
+    # 参数字典(来自前端)
+    get_field_schema_url = "/rest/{entityType}/list"
+    #
 
 
 class BaseApplication:
     def __init__(self, gle_user_config: dict):
-
         self.settings = GleUrlConfig
         self.gle_user_config: GleUserConfig = GleUserConfig(**gle_user_config)
         self.gle_url = GleURL(GleUserConfig(**gle_user_config).apiServerHost)
@@ -23,7 +27,6 @@ class BaseApplication:
         self.async_session: GlHoMuraSession = GlHoMuraSession(
             client_session=aiohttp.ClientSession, gle_user_config=self.gle_user_config.dict(), retry_when=lambda x: not isinstance(x, asyncio.exceptions.TimeoutError)
         )
-        self.semaphore = asyncio.Semaphore(20)
 
     @staticmethod
     async def request_response_callback(res: aiohttp.ClientResponse):
@@ -50,21 +53,16 @@ class BaseApplication:
             return await res.text(), res.status
         return await res.content.read(), res.headers
 
-    async def check_token(self):
-        res, status = await self.async_session.get(self.gle_url.check,
-                                                    params={"fields": "__name__%2Ccitys%2CjobTitle%2CtotalCount%2CjobStatus%2CopenDate%2Cbu____name__%2ClineManager__user%2Cjoborderuser_set__user____name__%2CaddedBy__user%2CdateAdded"},
-                                                    ssl=False,
-                                                    func=self.request_response_callback)
-
-
 
 if __name__ == '__main__':
-    asyncio.run(BaseApplication(
+    pass
+    b = BaseApplication(
         {
             "apiServerHost": "https://fsgtest.gllue.net",
             "aesKey": "824531e8cad2a287",
             "account": "api@fsg.com.cn"
         }
-    ).check_token())
+    )
+
 
 

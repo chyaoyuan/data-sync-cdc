@@ -1,7 +1,7 @@
 import asyncio
 from typing import Optional
 
-from loguru import logger
+from utils.logger import logger
 
 from channel.gllue.pull.application.model.sync_model import SyncConfig
 from channel.gllue.pull.application.schema.application import GleSchema
@@ -17,7 +17,7 @@ class GleJobOrder(GleSchema):
     # 每页最大条数
     total_count: int = 100
     entity = "jobOrder".lower()
-    # 前面是在entiy外的字段名称
+    # 前面是在entity外的字段名称
     entity_map_config = {
         "entityFieldName": "client"
     }
@@ -25,20 +25,20 @@ class GleJobOrder(GleSchema):
     def __init__(self, gle_user_config: dict, sync_config: dict):
         super().__init__(gle_user_config)
         self.sync_config = SyncConfig(**sync_config)
-        # self.extra_fields_list: Optional[list] = self.sync_config.fieldNameList.split(",") if self.sync_config.fieldNameList else None
+        self.extra_fields_list: Optional[list] = self.sync_config.fieldList if self.sync_config.fieldList else None
+        self.semaphore = asyncio.Semaphore(24)
 
     async def get_job_info(self, page: int, field_name_list: str, check: bool = False, overwrite_sql: Optional[str] = None):
         async with self.semaphore:
             res, status = await self.async_session.get(
-                url=f"{self.gle_user_config.apiServerHost}/rest/{self.entity}/simple_list_with_ids",
+                url=self.settings.get_entity_url.format(entityType=self.entity),
                 ssl=False,
                 params={"fields": field_name_list,
-                        "ordering": "-lastUpdateDate",
+                        "ordering": self.sync_config.orderBy,
                         "paginate_by": self.total_count,
                         'page': page,
                         'gql': overwrite_sql if overwrite_sql else self.sync_config.gql},
                 func=self.request_response_callback)
-            logger.info(overwrite_sql)
             if check:
                 return res
             # 生成额外实体映射数据
@@ -74,7 +74,6 @@ class GleJobOrder(GleSchema):
     #     )
     #     logger.info(res)
     async def get_job_orders_by_gql(self, gql: dict):
-        await self.check_token()
         gql_str = urlencode(gql)
         max_page: int = await self.get_max_page(gql_str)
         field_name_list = await self.get_field_name_list(self.entity)
@@ -88,21 +87,18 @@ class GleJobOrder(GleSchema):
         job_order_task_list = await self.get_job_orders_by_gql(gql)
         for job_order_task in asyncio.as_completed(job_order_task_list):
             for job_order in await job_order_task:
-                if job_order["jobTitle"] == gql["jobTitle__icontains"]:
+                if job_order["jobTitle"] == gql["jobTitle__eq"]:
                     total_job_order_id = job_order["id"]
                     total_job_order_name = job_order["jobTitle"]
                     logger.info(f"jobOrder Exist: client_id->{gql['client__s']} name->{total_job_order_name} job_order_id->{total_job_order_id}")
                     return job_order
         return None
 
-    async def run(self):
-        await self.check_token()
+    async def sync(self):
         max_page: int = await self.get_max_page()
         field_name_list = await self.get_field_name_list(self.entity)
         field_name_list = list(set(field_name_list + (self.extra_fields_list if self.extra_fields_list else [])))
-        print(field_name_list)
         field_name_list = ",".join(field_name_list)
-
         task_list = [asyncio.create_task(self.get_job_info(page=index, field_name_list=field_name_list)) for index in range(1, max_page+1)]
         return task_list
 

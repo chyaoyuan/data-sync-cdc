@@ -2,7 +2,7 @@ import aiohttp
 
 from typing import Union
 from typing_extensions import Literal
-from loguru import logger
+from utils.logger import logger
 from middleware.exception import MiddlewareException
 from middleware.storage.file.model import SaveFileBody, SaveB64FileBody
 from middleware.storage.base.application import Application as BaseApplication

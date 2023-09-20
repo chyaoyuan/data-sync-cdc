@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: data-sync-v2-fuze-route-server
+  name: data-sync-route-server
   namespace: tip
 spec:
   selector:
     matchLabels:
-      app: data-sync-v2-fuze-route-server
+      app: data-sync-route-server
       version: v1
       tier: backend
       track: stable
   template:
     metadata:
       labels:
-        app: data-sync-v2-fuze-route-server
+        app: data-sync-route-server
         version: v1
         tier: backend
         track: stable
@@ -21,8 +21,8 @@ spec:
         sidecar.istio.io/inject: "false"
     spec:
       containers:
-        - name: data-sync-v2-fuze-route-server
-          image: cr.mesoor.com/production/data-sync-cdc:v20230811-01
+        - name: data-sync-route-server
+          image: cr.mesoor.com/production/data-sync-cdc:v20230913-01
           imagePullPolicy: Always
           env:
             - name: PYTHONPATH

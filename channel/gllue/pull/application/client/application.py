@@ -4,12 +4,13 @@ from typing import Optional
 from urllib.parse import parse_qs, urlencode
 
 import aiohttp
-from loguru import logger
+from utils.logger import logger
 from channel.gllue.pull.application.base.model import BaseResponseModel
 from channel.gllue.pull.application.schema.application import GleSchema
 from channel.gllue.pull.application.model.sync_model import SyncConfig
 from utils.parse_time_interval import parse_time_interval
 from urllib.parse import urlencode
+
 
 class GlePullClient(GleSchema):
     # 每页最大条数
@@ -21,11 +22,12 @@ class GlePullClient(GleSchema):
         super().__init__(gle_user_config)
         # 同步需要的配置，搜索不需要
         self.sync_config = SyncConfig(**sync_config)
+        self.semaphore = asyncio.Semaphore(48)
 
     async def get_client_info(self, page: int, field_name_list: str, check: bool = False, overwrite_gql: Optional[str]=False):
         async with self.semaphore:
             res, status = await self.async_session.get(
-                url=f"{self.gle_user_config.apiServerHost}/rest/{self.entity}/simple_list_with_ids",
+                url=self.settings.get_entity_url.format(entityType=self.entity),
                 ssl=False,
                 params={"fields": field_name_list,
                         "ordering": "-lastUpdateDate",
@@ -48,7 +50,6 @@ class GlePullClient(GleSchema):
         return i.totalpages
 
     async def run(self):
-        await self.check_token()
         max_page: int = await self.get_max_page()
         field_name_list = await self.get_field_name_list(self.entity)
         field_name_list = ",".join(field_name_list)
@@ -77,7 +78,7 @@ class GlePullClient(GleSchema):
             if total_client_id:
                 break
             for client in await client_task:
-                if client["name"] == gql["keyword"]:
+                if client["name"] == gql["company_name__eq"]:
                     total_client_id = client["id"]
                     total_client_name = client["name"]
                     logger.info(f"client Exist name->{total_client_name} id->{total_client_id} info->{client}")

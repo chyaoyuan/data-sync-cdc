@@ -1,7 +1,7 @@
 import asyncio
 from typing import Type
 import aiohttp
-from loguru import logger
+from utils.logger import logger
 from middleware.settings.settings import Settings
 from utils.custom_aiohttp_session import HoMuraSession
 

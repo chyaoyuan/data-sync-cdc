@@ -2,7 +2,7 @@ import os
 from typing import Optional
 import databases
 import sqlalchemy
-from loguru import logger
+from utils.logger import logger
 from sqlalchemy_utils import database_exists, create_database
 from urllib.parse import quote_plus as urlquote
 

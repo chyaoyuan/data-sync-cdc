@@ -3,7 +3,7 @@ import time
 # from channel.gllue.session.model import GleUserConfig
 import base64
 from Crypto.Cipher import AES
-from loguru import logger
+from utils.logger import logger
 
 
 class AESCrypto(object):

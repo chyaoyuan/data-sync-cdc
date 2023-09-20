@@ -1,6 +1,6 @@
 from typing import Type
 
-from loguru import logger
+from utils.logger import logger
 
 from middleware.entityStorage.base.application import BaseApplication
 from middleware.entityStorage.entity.model import PutSourceModel, GetSourceModel

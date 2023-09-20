@@ -23,9 +23,13 @@ def get_entity_info(entity_body_list: List[EntityConvertModel],entity_type: str)
 
 @app.post("/v1/GllueEntity/Push/AutoCreate")
 async def auto_push(body: GlePushEntityModel):
-    await push_gle_job_order_executor(body.GleUserConfig,
-                                      get_entity_info(body.entityBodyList, "Project").convertBody,
-                                      get_entity_info(body.entityBodyList, "Client").convertBody)
+    await push_gle_job_order_executor(
+        GleUserConfig(**extra_config),
+        SyncConfig(**_sync_config),
+        get_converted_entity(entities_res, "BusinessPartner").convertBody,
+        get_converted_entity(entities_res, "Job").convertBody,
+        get_converted_entity(entities_res, "Resume").convertBody
+    )
 
 
 

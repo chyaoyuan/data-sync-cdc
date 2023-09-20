@@ -1,6 +1,6 @@
 import aiohttp
 import asyncio
-from loguru import logger
+from utils.logger import logger
 from aiohttp.typedefs import StrOrURL
 from typing import Type, Callable, Optional, Any, Coroutine
 import time

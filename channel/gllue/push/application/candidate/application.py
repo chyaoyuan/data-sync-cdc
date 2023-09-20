@@ -4,12 +4,13 @@ from typing import Optional
 from urllib.parse import urlencode
 from urllib import request, parse
 import aiohttp
-from loguru import logger
+from utils.logger import logger
 from aiohttp import FormData
 from channel.gllue.push.application.base.application import BaseApplication
 
 
 class GlePushCandidate(BaseApplication):
+    entity = "candidate"
     # 这么好用的接口GLLUE不给开放
     # async def check_candidate_exist(self, phone: Optional[str] = None, email: Optional[str] = None):
     #     for _ in [{"name": "mobile", "type": "mobile", "value": phone}, {"name": "email", "type": "email", "value": email}]:
@@ -43,7 +44,7 @@ class GlePushCandidate(BaseApplication):
 
     async def push_candidate(self, entity: dict):
         info, status = await self.async_session.post(
-            url=f"{self.gle_user_config.apiServerHost}/rest/candidate/add",
+            url=f"/rest/{self.entity}/add",
             ssl=False,
             json=entity,
             func=self.request_response_callback)

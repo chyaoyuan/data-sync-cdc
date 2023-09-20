@@ -1,4 +1,4 @@
-from loguru import logger
+from utils.logger import logger
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import Insert
 from entityStorageServer.database.base.application import Application

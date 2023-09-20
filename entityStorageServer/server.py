@@ -1,5 +1,5 @@
 import uvicorn
-from loguru import logger
+from utils.logger import logger
 from fastapi import FastAPI
 from entityStorageServer.database.executor.application import database_app
 from fastapi.responses import JSONResponse

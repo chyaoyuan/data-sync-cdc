@@ -7,7 +7,7 @@ import jmespath
 import requests
 import uvicorn
 from fastapi import FastAPI
-from loguru import logger
+from utils.logger import logger
 from TipConvert import ConvertApp
 
 from channel.gllue.executor.model import GleUserConfig, SyncConfig
@@ -43,10 +43,11 @@ def get_converted_entity(entity_list: List[EntityConvertModel], entity_type: str
             return entity
 
 _sync_config = {
+        "syncModel": "Id",
         "entityName": "jobOrder",
         "recent": "30",
         "unit": "year",
-        "timeFieldName": "lastUpdateDate__lastUpdateDate__day_range",
+        "timeFieldName": "lastUpdateDate__day_range",
         "gql": "jobStatus__s=Live",
         "fieldNameList": "operation,id,client__name,client__candidate_authorization_remind,islimited,jobTitle,client__name,client__type,client____name__,client__is_parent,client__parent,client__parent__id,client__parent__type,client,jobStatus,longlist_count,cvsent_count,clientinterview_count,offersign_count,addedBy__user,addedBy__type,addedBy,joborderuser_set__user____name__,joborderuser_set__type,joborderuser_set,gllueextcharge,workflow_spec__addedBy____name__,workflow_spec__addedBy,dateAdded,__name__,citys,positionType,gllueextFeerate",
         "childEntityList": [{
@@ -55,10 +56,17 @@ _sync_config = {
         }],
 
     }
-@app.post("/v1/fuzeRoute/{endpoint}")
-async def run(endpoint: str, fuze_body: dict):
-    assert endpoint.lower() == "GllueEntityPush".lower()
-    logger.info(json.dumps(fuze_body,ensure_ascii=False))
+
+
+@app.post("/v1/{channel}/{upstream}")
+async def run(channel: str, upstream: str, event: str, fuze_body: dict):
+    print(channel)
+    print(upstream)
+    print(event)
+    channel = "gllue"
+    upstream = "fuze"
+    event = "status-changes"
+    logger.info(json.dumps(fuze_body, ensure_ascii=False))
     fuze_body = EventBody(**fuze_body)
     extra_config = {k: v["value"] for k, v in json.loads(fuze_body.data).items()}
     logger.info(extra_config)
@@ -98,7 +106,7 @@ async def run(endpoint: str, fuze_body: dict):
     async with aiohttp.ClientSession() as session:
         c = ConvertApp(session, {"convertServerHost": os.getenv("convertServerHost", "http://converter.nadileaf.com")})
         for entity in entities:
-            if config := convert_config["default"][endpoint] and convert_config["default"][endpoint][entity.entityType] is not None:
+            if config := convert_config["default"]["gllueEntityPush"] and convert_config["default"]["gllueEntityPush"][entity.entityType] is not None:
                 converted_entity, status = await c.convert(config[entity.entityType], entity.body)
                 entities_res.append(EntityConvertModel(**{**entity.dict(), "convertBody": converted_entity}))
             else:
