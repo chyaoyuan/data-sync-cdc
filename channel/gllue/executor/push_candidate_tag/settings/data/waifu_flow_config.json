@@ -1,0 +1,312 @@
+[
+     [
+          {
+               "method": "extract",
+               "name": "工作城市",
+               "jmespath": [
+                    "description",
+                    "job_requirements"
+               ]
+          },
+          {
+               "inputIndex": -1,
+               "inputModel": "index",
+               "method": "func",
+               "func": "id_map.city",
+               "end": true
+          },
+          {
+               "method":"create_entity",
+               "gllueFieldName": [
+                    "citys"
+               ]
+          }
+     ],
+     [
+          {
+               "method": "extract",
+               "name": "工作地址",
+               "jmespath": [
+                    "description",
+                    "job_requirements"
+               ],
+               "end": true
+          },
+          {
+                 "method":"create_entity",
+               "gllueFieldName": [
+                    "gllueext_company_address"
+               ]
+          }
+     ],
+     [
+          {
+               "method": "extract",
+               "name": "月薪和月薪月数",
+               "jmespath": [
+                    "description",
+                    "job_requirements"
+               ]
+          },
+          {
+               "method": "func",
+               "traceId": 3,
+               "step": 2,
+               "func": "Salary",
+               "end": true,
+               "inputIndex": -1,
+               "inputModel": "index"
+          },
+          {
+               "traceId": 3,
+                 "method":"create_entity",
+               "gllueFieldName": [
+                    "gllueext_monthpay_count",
+                    "monthlySalary",
+                    "maxMonthlySalary"
+               ]
+          }
+     ],
+     [
+          {
+               "method": "extract",
+               "traceId": 4,
+               "step": 1,
+               "name": "日薪金额",
+               "jmespath": [
+                    "description",
+                    "job_requirements"
+               ],
+               "end": true
+          },
+          {
+               "traceId": 4,
+                 "method":"create_entity",
+               "gllueFieldName": [
+                    "gllueext_daily_wage"
+               ]
+          }
+     ],
+     [
+          {
+               "method": "extract",
+               "traceId": 5,
+               "step": 1,
+               "name": "时薪金额",
+               "jmespath": [
+                    "description",
+                    "job_requirements"
+               ],
+               "end": true
+          },
+          {
+               "traceId": 5,
+                 "method":"create_entity",
+               "gllueFieldName": [
+                    "gllueext_hourly_wage"
+               ]
+          }
+     ],
+     [
+          {
+               "method": "extract",
+               "name": "工作时间",
+               "jmespath": [
+                    "description",
+                    "job_requirements"
+               ],
+               "end": true
+          },
+          {
+               "traceId": 6,
+                 "method":"create_entity",
+               "gllueFieldName": [
+                    "gllueext_work_cycle"
+               ]
+          }
+     ],
+     [
+          {
+               "method": "extract",
+               "traceId": 7,
+               "step": 1,
+               "name": "学历要求",
+               "jmespath": [
+                    "description",
+                    "job_requirements"
+               ]
+          },
+          {
+               "method": "expand",
+               "traceId": 7,
+               "step": 2,
+               "expandCategory": "education-fsg-gllue"
+          },
+          {
+               "method": "func",
+               "traceId": 7,
+               "step": 3,
+               "func": "id_map.joborder.degree",
+               "end": true
+          },
+          {
+                 "method":"create_entity",
+               "traceId": 7,
+               "gllueFieldName": [
+                    "degree"
+               ]
+          }
+     ],
+     [
+          {
+               "method": "extract",
+               "traceId": 8,
+               "step": 1,
+               "name": "工作年限要求",
+               "jmespath": [
+                    "description",
+                    "job_requirements"
+               ]
+          },
+          {
+               "method": "expand",
+               "traceId": 8,
+               "step": 2,
+               "expandCategory": "experiences-fsg-gllue"
+          },
+          {
+               "method": "func",
+               "traceId": 8,
+               "step": 3,
+               "func": "id_map.joborder.work_year",
+               "end": true
+          },
+          {
+                 "method":"create_entity",
+               "traceId": 8,
+               "gllueFieldName": [
+                    "work_year"
+               ]
+          }
+     ],
+     [
+          {
+               "method": "extract",
+               "traceId": 9,
+               "step": 1,
+               "name": "年龄下限",
+               "jmespath": [
+                    "description",
+                    "job_requirements"
+               ]
+          },
+          {
+               "method": "func",
+               "traceId": 9,
+               "step": 2,
+               "func": "get_int",
+               "end": true,
+               "inputIndex": -1,
+               "inputModel": "index"
+          },
+          {
+                 "method":"create_entity",
+               "traceId": 9,
+               "gllueFieldName": [
+                    "gllueext_number_1690859067510"
+               ]
+          }
+     ],
+     [
+          {
+               "method": "extract",
+               "traceId": 10,
+               "step": 1,
+               "name": "年龄上限",
+               "jmespath": [
+                    "description",
+                    "job_requirements"
+               ]
+          },
+          {
+               "method": "func",
+               "traceId": 10,
+               "step": 2,
+               "func": "get_int",
+               "end": true,
+               "inputIndex": -1,
+               "inputModel": "index"
+          },
+          {
+                 "method":"create_entity",
+               "traceId": 10,
+               "gllueFieldName": [
+                    "gllueext_number_1690859041960"
+               ]
+          }
+     ],
+     [
+          {
+               "method": "extract",
+               "traceId": 11,
+               "step": 1,
+               "name": "户籍要求",
+               "jmespath": [
+                    "description",
+                    "job_requirements"
+               ]
+          },
+          {
+               "method": "expand",
+               "traceId": 11,
+               "step": 2,
+               "expandCategory": "huji-fsg-gllue"
+          },
+          {
+               "method": "func",
+               "traceId": 11,
+               "step": 2,
+               "func": "id_map.joborder.gllueext_select_1690859746286",
+               "end": true
+          },
+          {
+                 "method":"create_entity",
+               "traceId": 11,
+               "gllueFieldName": [
+                    "gllueext_select_1690859746286"
+               ]
+          }
+     ],
+     [
+          {
+               "method": "extract",
+               "traceId": 12,
+               "step": 1,
+               "name": "性别要求",
+               "jmespath": [
+                    "description",
+                    "job_requirements"
+               ]
+          },
+          {
+               "method": "expand",
+               "traceId": 12,
+               "step": 2,
+               "expandCategory": "genders-fsg-gllue"
+          },
+          {
+               "method": "func",
+               "traceId": 12,
+               "step": 3,
+               "func": "id_map.joborder.gllueext_select_1690859664815",
+               "end": true
+          },
+          {
+                 "method":"create_entity",
+               "traceId": 12,
+               "gllueFieldName": [
+                    "gllueext_select_1690859664815"
+               ]
+          }
+     ]
+]

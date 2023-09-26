@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import copy
+import hashlib
 import json
 import os
 import time
@@ -124,9 +125,20 @@ class GleEntity(GleSchema):
                 "fields": "attachment",
                 "gql": f"id__s={attachments}"},
             func=self.request_response_callback)
-        logger.error(attachments_info)
-        entity["attachment"] = attachments_info['result']["attachment"]
-        for attachment in entity["attachment"]:
+        entity["mesoorExtraAttachments"] = attachments_info['result']["attachment"]
+        for attachment in entity["mesoorExtraAttachments"]:
+            # {
+            #      "dateAdded": "2023-09-20 22:11:43",
+            #      "real_preview_path": "fsgtest/candidate/2023-09/preview/65ecc133-1f02-4872-bba6-37677e4e9890.pdf",
+            #      "ext": "txt",
+            #      "uuidname": "65ecc133-1f02-4872-bba6-37677e4e9890",
+            #      "id": 824,
+            #      "type": "candidate",
+            #      "__name__": null,
+            #      "__oss_url": "/rest/v2/attachment/preview/65ecc133-1f02-4872-bba6-37677e4e9890",
+            #      "__download_oss_url": "/rest/v2/attachment/download/65ecc133-1f02-4872-bba6-37677e4e9890",
+            #      "__preview_to_pdf": true
+            # }
             con, headers = await self.async_session.get(
                 url=attachment["__download_oss_url"],
                 ssl=False,
@@ -137,7 +149,7 @@ class GleEntity(GleSchema):
             attachment["fileName"] = filename
             attachment["fileContent"] = base64.b64encode(con).decode()
         latest_date = None
-        for attachment_info in entity["attachment"]:
+        for attachment_info in entity["mesoorExtraAttachments"]:
             if attachment_info["type"] == "candidate":
                 date_added = attachment_info["dateAdded"]
                 if date_added is not None:
@@ -146,7 +158,7 @@ class GleEntity(GleSchema):
                     if latest_date is None or date_added > latest_date:
                         latest_date = date_added
                         latest_dict = attachment_info
-                        entity["latestResume"] = latest_dict
+                        entity["mesoorExtraLatestResume"] = latest_dict
 
     async def _get_candidate_info(self, page: int, field_name_list: str, check: bool = False,
                                   overwrite_gql: Optional[str] = None):
@@ -156,7 +168,7 @@ class GleEntity(GleSchema):
             response = await self.___get_candidate_info(page, field_name_list, check, overwrite_gql)
             # 当无权限人员拉数据会返回{}
             gql = overwrite_gql if overwrite_gql else self.sync_config.gql
-            ids = gql.replace("id__s=","").split(",")
+            ids = gql.replace("id__s=", "").split(",")
             if not response:
                 return [{"id": _id for _id in ids}], {}
             result = response.get("result", {})
@@ -165,7 +177,6 @@ class GleEntity(GleSchema):
             candidate_list = self.merge_fields(result[self.entityType], child_field_name_list, result)
             for candidate in candidate_list:
                 attachments = candidate.get("attachments") or None
-                logger.info(attachments)
                 if attachments and self.sync_config.syncAttachment:
                     await self.get_attachment(candidate, attachments)
             # 获取除了本身以外还有哪些实体
@@ -269,3 +280,12 @@ class GleEntity(GleSchema):
             for candidate_task in asyncio.as_completed(candidate_info_task_list):
                 for candidate in await candidate_task:
                     return candidate
+
+    @staticmethod
+    def pop_entity_file_content(entity_body: dict):
+        if attachments := entity_body.get("mesoorExtraAttachments", []):
+            for attachment in attachments:
+                attachment.pop("fileContent", None)
+                print(9999)
+        entity_body.get("mesoorExtraLatestResume", {}).pop("fileContent", None)
+        return entity_body

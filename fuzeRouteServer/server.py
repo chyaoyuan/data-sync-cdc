@@ -42,6 +42,7 @@ def get_converted_entity(entity_list: List[EntityConvertModel], entity_type: str
         if entity.entityType == entity_type:
             return entity
 
+
 _sync_config = {
         "syncModel": "Id",
         "entityName": "jobOrder",

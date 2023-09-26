@@ -1,5 +1,7 @@
 from sqlalchemy import Table, Column, Integer, String, BigInteger, Date, DateTime, ForeignKey, func, JSON, BOOLEAN, \
     LargeBinary, TEXT, UniqueConstraint, Index
+from sqlalchemy.dialects.postgresql import JSONB
+
 from entityStorageServer.settings.settings import Settings
 from entityStorageServer.database.base.application import Base
 from sqlalchemy.orm import relationship
@@ -11,7 +13,7 @@ class EntityInfoStorage(Base):
     entity_type = Column(String(600), nullable=False, comment="实体名称")
     source_id = Column(String(600), index=True, nullable=False, comment="自增长")
     tenant = Column(String(600), nullable=False, comment="租户")
-    payload = Column(JSON, nullable=False, comment="实体内容")
+    payload = Column(JSONB, nullable=False, comment="实体内容")
     is_delete = Column(BOOLEAN, nullable=False, comment="软删除")
     create_at = Column(DateTime, server_default=func.now(), comment="创建时间")
     update_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")

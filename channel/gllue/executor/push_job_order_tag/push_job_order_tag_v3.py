@@ -184,3 +184,5 @@ async def push_job_order_tag_exec_v3(gle_user_config: GleUserConfig, sync_config
                                                                                   overwrite_info=new_gllue_body)
                     logger.info(res)
                     logger.error(e)
+if __name__ == '__main__':
+    _r1 = tip_app.field_normalization_app.salary_range(extract.category)

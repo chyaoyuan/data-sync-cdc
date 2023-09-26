@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-sync-kafka-storage-server
+  namespace: tip
+spec:
+  selector:
+    matchLabels:
+      app: data-sync-kafka-storage-server
+      version: v1
+      tier: backend
+      track: stable
+  template:
+    metadata:
+      labels:
+        app: data-sync-kafka-storage-server
+        version: v1
+        tier: backend
+        track: stable
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      containers:
+        - name: data-sync-kafka-storage-server
+          image: cr.mesoor.com/develop/data-sync-cdc:v20230925-01
+          imagePullPolicy: Always
+          env:
+            - name: PYTHONPATH
+              value: "."
+            - name: EntityStorageServerHost
+              value: "http://data-sync-v2-entity-storage-server"
+          command: [ "python", "./kafkaStorageServer/server.py"]
+      imagePullSecrets:
+        - name: crmesoor-pullsecret
