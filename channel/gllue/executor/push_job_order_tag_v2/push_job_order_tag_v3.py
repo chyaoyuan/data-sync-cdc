@@ -197,7 +197,7 @@ async def run():
         _r1 = tip_app.field_normalization_app.salary_range("2.5-3.6万")
         logger.info(_r1)
         print("*"*100)
-        _r1 = tip_app.field_normalization_app.salary_range("1-1.4万")
+        _r1 = tip_app.field_normalization_app.salary_range("20-30k")
         logger.info(_r1)
 if __name__ == '__main__':
     asyncio.run(run())

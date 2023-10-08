@@ -29,27 +29,47 @@ class GlePushCandidate(BaseApplication):
     #
     #     return False
 
-    async def put_candidate_under_job_order_by_info(self, job_order: str, phone: str, email: str, name: str, overwrite_entity: Optional[dict]={}):
-        data = {"candidateexperience_set":[{"is_current": True, "gllueext_text_1580804429654": "","gllueext_achievements":"","client":{"name":"mesoor-test1"}}],"candidateproject_set":[],"candidateeducation_set":[],"candidatelanguage_set":[],"englishName":"","owner":2491,"gllueext_select_1532920743234":"","gllueext_channelURL":"","gllueext_Summary":"","gllueext_text_miaoshu":"", "extractAttachments":False,"locations":"88","industrys":"11","functions":"3","channel":"400000","_notice_data":[]}
-        new_data = {**data, **overwrite_entity, "joborder": job_order, "type":"candidate","mobile":phone,"chineseName":name,"email":email}
+    async def put_candidate_under_job_order_by_info(self,  required_entity: dict, overwrite_entity: dict):
+        assert "job_order" in required_entity.keys()
+        new_data = {**overwrite_entity, **required_entity, **{"type": "candidate"}}
         body = "data=" + parse.quote(json.dumps(new_data, ensure_ascii=False))
         info, status = await self.async_session.post(
-            url=f"{self.gle_user_config.apiServerHost}/rest/candidate/add",
-            ssl=False,
+            url=f"/rest/candidate/add",
             data=body,
             func=self.request_response_callback)
         logger.info(info)
         if status:
             return info["data"]
 
-    async def push_candidate(self, entity: dict):
+    async def upsert_candidate(self, entity: dict):
         info, status = await self.async_session.post(
             url=f"/rest/{self.entity}/add",
             ssl=False,
             json=entity,
             func=self.request_response_callback)
+        if message := info.get("message"):
+            logger.error(f"candidate 写回失败 message->{message}")
+            return None
         if info["status"]:
-            logger.info(f"候选人写回成功 id->{entity['id']}")
+            logger.info(f"candidate 写回成功 id->{info}")
             return info
         else:
-            logger.info(f"写回失败 id->{entity['id']} {info}")
+            logger.error(f"candidate 写回失败 id->{entity['id']} {info}")
+
+    async def create_candidate(self, overwrite_entity: dict):
+        """
+        entity_required:gllue指定的字段，不允许复写
+        """
+        # 创建简历就不许传递ID
+        assert "id" not in overwrite_entity.keys()
+        return await self.upsert_candidate(overwrite_entity)
+
+    async def update_candidate(self, required_entity: dict, overwrite_entity: dict):
+        """
+        entity_required:gllue指定的字段，不允许复写
+        """
+        # 创建简历就不许传递ID
+        assert "id" in overwrite_entity.keys()
+        return await self.upsert_candidate({**overwrite_entity, **required_entity})
+
+

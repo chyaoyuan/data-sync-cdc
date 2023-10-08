@@ -21,6 +21,7 @@ class COSApplication:
             Key=key,
             **header
         )
+        print(response)
 
     def get_attachment_by_key(self, key: str):
         response = self.client.get_object(

@@ -1,8 +1,10 @@
 import asyncio
 import aiohttp
+
+from gllueEntityPushServer.model import GleUserConfig
 from utils.logger import logger
 
-from channel.gllue.pull.application.base.model import GleURL, GleUserConfig
+# from channel.gllue.pull.application.base.model import GleURL, GleUserConfig
 from channel.gllue.session.gllue_aiohttp_session import GlHoMuraSession
 
 
@@ -16,7 +18,7 @@ class BaseApplication:
 
         self.settings = GleUrlConfig
         self.gle_user_config: GleUserConfig = GleUserConfig(**gle_user_config)
-        self.gle_url = GleURL(GleUserConfig(**gle_user_config).apiServerHost)
+        # self.gle_url = GleURL(GleUserConfig(**gle_user_config).apiServerHost)
 
         self.async_session: GlHoMuraSession = GlHoMuraSession(
             client_session=aiohttp.ClientSession, gle_user_config=self.gle_user_config.dict(), retry_when=lambda x: not isinstance(x, asyncio.exceptions.TimeoutError)

@@ -9,6 +9,11 @@ from asyncio import Task
 from cgi import parse_header
 from typing import Optional, Literal, List
 from urllib.parse import unquote, urlencode
+
+import aiofiles
+
+from channel.gllue.pull.application.attachment.application import GleAttachment
+from channel.gllue.pull.application.user.application import GleUser
 from utils.logger import logger
 from datetime import datetime
 
@@ -38,8 +43,12 @@ class GleEntity(GleSchema):
         self.schema_config = {}
         self.get_industry_tag_schema_config = {}
         self.candidate_function_map = {}
+        # schema
         self.schema_app = GleSchema(gle_user_config)
-
+        # 附件
+        self.attachment_app = GleAttachment(gle_user_config)
+        # 用户/操作者
+        self.user_app = GleUser(gle_user_config)
         self.gle_user_id: Optional[int] = None
 
     async def init_schema(self):
@@ -95,7 +104,6 @@ class GleEntity(GleSchema):
 
         res, status = await self.async_session.get(
             url=self.settings.get_entity_url.format(entityType=self.entityType),
-            ssl=False,
             params={
                 "fields": field_name_list,
                 "ordering": self.sync_config.orderBy,
@@ -117,58 +125,15 @@ class GleEntity(GleSchema):
         for attachment in entity.get("attachment", []):
             attachment.pop("fileContent", None)
 
-    async def get_attachment(self, entity, attachments):
-        attachments_info, status = await self.async_session.get(
-            url=self.settings.get_entity_url.format(entityType="file"),
-            ssl=False,
-            params={
-                "fields": "attachment",
-                "gql": f"id__s={attachments}"},
-            func=self.request_response_callback)
-        entity["mesoorExtraAttachments"] = attachments_info['result']["attachment"]
-        for attachment in entity["mesoorExtraAttachments"]:
-            # {
-            #      "dateAdded": "2023-09-20 22:11:43",
-            #      "real_preview_path": "fsgtest/candidate/2023-09/preview/65ecc133-1f02-4872-bba6-37677e4e9890.pdf",
-            #      "ext": "txt",
-            #      "uuidname": "65ecc133-1f02-4872-bba6-37677e4e9890",
-            #      "id": 824,
-            #      "type": "candidate",
-            #      "__name__": null,
-            #      "__oss_url": "/rest/v2/attachment/preview/65ecc133-1f02-4872-bba6-37677e4e9890",
-            #      "__download_oss_url": "/rest/v2/attachment/download/65ecc133-1f02-4872-bba6-37677e4e9890",
-            #      "__preview_to_pdf": true
-            # }
-            con, headers = await self.async_session.get(
-                url=attachment["__download_oss_url"],
-                ssl=False,
-                func=self.request_file_response_callback,
-            )
-            _, params = parse_header(headers.get("Content-Disposition"))
-            filename = unquote(params.get('filename'))
-            attachment["fileName"] = filename
-            attachment["fileContent"] = base64.b64encode(con).decode()
-        latest_date = None
-        for attachment_info in entity["mesoorExtraAttachments"]:
-            if attachment_info["type"] == "candidate":
-                date_added = attachment_info["dateAdded"]
-                if date_added is not None:
-                    # 解析日期字符串为datetime对象
-                    date_added = datetime.strptime(date_added, "%Y-%m-%d %H:%M:%S")
-                    if latest_date is None or date_added > latest_date:
-                        latest_date = date_added
-                        latest_dict = attachment_info
-                        entity["mesoorExtraLatestResume"] = latest_dict
-
     async def _get_candidate_info(self, page: int, field_name_list: str, check: bool = False,
                                   overwrite_gql: Optional[str] = None):
         async with self.semaphore:
             if self.sleep_time:
                 await asyncio.sleep(self.sleep_time)
             response = await self.___get_candidate_info(page, field_name_list, check, overwrite_gql)
-            # 当无权限人员拉数据会返回{}
             gql = overwrite_gql if overwrite_gql else self.sync_config.gql
             ids = gql.replace("id__s=", "").split(",")
+            logger.info(response)
             if not response:
                 return [{"id": _id for _id in ids}], {}
             result = response.get("result", {})
@@ -178,7 +143,7 @@ class GleEntity(GleSchema):
             for candidate in candidate_list:
                 attachments = candidate.get("attachments") or None
                 if attachments and self.sync_config.syncAttachment:
-                    await self.get_attachment(candidate, attachments)
+                    await self.attachment_app.get_attachment(attachments, candidate)
             # 获取除了本身以外还有哪些实体
             extra_entity_list = list(
                 set(list(result.keys())) - set(child_field_name_list) - {self.entityType}
@@ -191,7 +156,7 @@ class GleEntity(GleSchema):
             candidate_id_map = self.schema_app.field_id_map.get(self.entityType, {})
             # 对系统字段映射字典字段进行合并
             system_id_map = copy.deepcopy(self.schema_app.field_id_map)
-            system_id_map.pop(self.entityType)
+            system_id_map.pop(self.entityType,None)
             for candidate in candidate_list:
                 self.mesoor_extra(candidate, system_id_map, list(system_id_map.keys()))
                 self.mesoor_extra(candidate, candidate_id_map, list(candidate_id_map.keys()))
@@ -200,7 +165,6 @@ class GleEntity(GleSchema):
             return candidate_list, response
 
     async def create_tasks(self, field_name_list):
-        # 如果是指定抓取的ID列表
         if self.sync_config.syncModel == "Id":
             id_list = [self.sync_config.idList[i:i + self.total_count] for i in
                        range(0, len(self.sync_config.idList), self.total_count)]
@@ -225,7 +189,7 @@ class GleEntity(GleSchema):
 
     async def initialize_field(self, add_field_list: Optional[list] = None,
                                add_child_field_list: Optional[list] = None):
-        # 生成字段map
+
         await self.schema_app.initialize_field_map_field(self.entityType)
         # 如果填写了子字段参数和额外子字段参数 则和默认值合并一起请求获取schema
         add_field_list = self.add_field_list if not add_field_list else add_field_list
@@ -268,24 +232,29 @@ class GleEntity(GleSchema):
 
         candidate_info_task_list = await self.get_candidates_by_gql(_gql)
         for candidate_task in asyncio.as_completed(candidate_info_task_list):
-            for candidate in await candidate_task:
-                return candidate
-        if mobile := gql.get("mobile") or None:
+            for candidate_list in await candidate_task:
+                for candidate in candidate_list:
+                    return candidate
+        if _gql.get("mobile") or None:
+            mobile = gql.get("mobile")
             candidate_info_task_list = await self.get_candidates_by_gql({"mobile": mobile})
             for candidate_task in asyncio.as_completed(candidate_info_task_list):
-                for candidate in await candidate_task:
-                    return candidate
-        if email := gql.get("email") or None:
+                for candidate_list in await candidate_task:
+                    for candidate in candidate_list:
+                        return candidate
+
+        if _gql.get("email") or None:
+            email = gql.get("email")
             candidate_info_task_list = await self.get_candidates_by_gql({"email": email})
             for candidate_task in asyncio.as_completed(candidate_info_task_list):
-                for candidate in await candidate_task:
-                    return candidate
+                for candidate_list in await candidate_task:
+                    for candidate in candidate_list:
+                        return candidate
 
     @staticmethod
     def pop_entity_file_content(entity_body: dict):
         if attachments := entity_body.get("mesoorExtraAttachments", []):
             for attachment in attachments:
                 attachment.pop("fileContent", None)
-                print(9999)
         entity_body.get("mesoorExtraLatestResume", {}).pop("fileContent", None)
         return entity_body

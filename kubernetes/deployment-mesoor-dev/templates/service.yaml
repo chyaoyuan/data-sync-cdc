@@ -41,5 +41,5 @@ spec:
     - name: http
       protocol: TCP
       port: 80
-      targetPort: 9400
+      targetPort: 9200
 

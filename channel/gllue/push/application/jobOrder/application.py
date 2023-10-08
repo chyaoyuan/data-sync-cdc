@@ -1,5 +1,5 @@
 import json
-from typing import Optional
+from typing import Optional, List
 
 import aiohttp
 from utils.logger import logger
@@ -41,15 +41,11 @@ class GlePushJobOrder(BaseApplication):
                 return {"id": res["data"]}
         raise EOFError(f"{res} {status}")
 
-    async def put_candidate_under_job_order_by_candidate_id(self, job_order_id: str, candidate_list: [str]):
+    async def put_candidate_under_job_order_by_id(self, job_order_id: int, candidate_id_list: List[int]):
         form_data = aiohttp.FormData()
-        form_data.add_field("data", {"joborder_id": [job_order_id], "candidate_ids": candidate_list})
-        # {"joborder_ids": [146974], "candidate_ids": [2545459], "startflow": "longlist", "origin_jobsubmission_id": 0}
-        # response
-        # {"status":true,"data":[{"status":true,"data":3414726,"current_message":{}}]}
+        form_data.add_field("data", json.dumps({"joborder_ids": [job_order_id],"candidate_ids":candidate_id_list,"startflow":"longlist","origin_jobsubmission_id":0}))
         info, status = await self.async_session.post(
-            url=f"{self.gle_user_config.apiServerHost}/rest/candidate/add",
-            ssl=False,
+            url="/rest/jobsubmission/add",
             data=form_data,
             func=self.request_response_callback)
         logger.info(info)

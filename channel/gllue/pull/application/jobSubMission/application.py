@@ -1,6 +1,7 @@
 import asyncio
 from typing import Optional
 
+from channel.gllue.pull.application.candidate.application import GleEntity
 from utils.logger import logger
 
 from channel.gllue.pull.application.model.sync_model import SyncConfig
@@ -12,11 +13,13 @@ class GleJobSubMissionInfo(GleSchema):
     # 每页最大条数
     total_count: int = 100
     entity = "jobSubMission".lower()
+    #
 
     def __init__(self, gle_user_config: dict, sync_config: dict):
         super().__init__(gle_user_config)
+        # 通过jobsubmission查询候选人用
+        self.candidate_app = GleEntity(gle_user_config, sync_config)
         self.sync_config = SyncConfig(**sync_config)
-
     async def _get_job_sub_mission_info(self, page: int,
                                         field_name_list: str,
                                         test: bool = False,

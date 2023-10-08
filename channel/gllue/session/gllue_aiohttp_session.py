@@ -40,6 +40,7 @@ class GlHoMuraSession:
                 params = {k: v for k, v in params.items() if v}
                 kwargs["params"] = params
             url = f"{self.gle_user_config['apiServerHost']}{url}"
+            logger.info(url)
             last_error = Exception("")
             for i in range(self.retry_time):
                 try:

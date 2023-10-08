@@ -6,10 +6,11 @@ from typing import Optional, List
 import aiohttp
 import requests
 
+from channel.gllue.pull.application.base.application import BaseApplication
 from channel.gllue.pull.application.schema.model import SchemaFieldInfo, GleFieldType
 from utils.logger import logger
 from asgiref.sync import async_to_sync
-from channel.gllue.pull.application.base.application import BaseApplication
+
 import addressparser
 
 

@@ -7,6 +7,9 @@ import jmespath
 import requests
 import uvicorn
 from fastapi import FastAPI
+
+from channel.gllue.executor.upsert_candidate_to_job_order.upsert_candidate_to_job_order import \
+    upsert_candidate_to_job_order
 from utils.logger import logger
 from TipConvert import ConvertApp
 
@@ -25,7 +28,7 @@ convert_config = {
     "default": {"gllueEntityPush": {
         "Job": os.getenv("JobConvert", None),
         "Project": os.getenv("ProjectConvert", None),
-        "Resume": os.getenv("CandidateConvert", None),
+        "Resume": os.getenv("CandidateConvert", "ResumeCgl:standard:2023_09_26_02_19_16"),
         "BusinessPartner": os.getenv("CandidateConvert", None),
     }}
 }
@@ -70,7 +73,6 @@ async def run(channel: str, upstream: str, event: str, fuze_body: dict):
     logger.info(json.dumps(fuze_body, ensure_ascii=False))
     fuze_body = EventBody(**fuze_body)
     extra_config = {k: v["value"] for k, v in json.loads(fuze_body.data).items()}
-    logger.info(extra_config)
     project = TransmitterRequestModel(
         **{"tenantAlias": fuze_body.eventMessage.tenantId,
            "openId": fuze_body.eventMessage.newTask.standardFields.project.openId,
@@ -95,32 +97,32 @@ async def run(channel: str, upstream: str, event: str, fuze_body: dict):
     res = requests.get(Settings.TransmitterSettings.transmitterUrl.format(**job.dict()))
     assert res.status_code == 200
     entities.append(EntityModel(**{**job.dict(), "body": res.json()}))
-    business_partner = TransmitterRequestModel(
-        **{"tenantAlias": fuze_body.eventMessage.tenantId,
-           "openId": get_entity(entities, "Job").body["data"]["standardFields"]["headhunterRequestDetail"]["partyA"][
-               "openId"],
-           "entityType": get_entity(entities, "Job").body["data"]["standardFields"]["headhunterRequestDetail"]["partyA"][
-               "entityType"]})
-    res = requests.get(Settings.TransmitterSettings.transmitterUrl.format(**business_partner.dict()))
-    entities.append(EntityModel(**{**business_partner.dict(), "body": res.json()}))
+    # business_partner = TransmitterRequestModel(
+    #     **{"tenantAlias": fuze_body.eventMessage.tenantId,
+    #        "openId": get_entity(entities, "Job").body["data"]["standardFields"]["headhunterRequestDetail"]["partyA"][
+    #            "openId"],
+    #        "entityType": get_entity(entities, "Job").body["data"]["standardFields"]["headhunterRequestDetail"]["partyA"][
+    #            "entityType"]})
+    # res = requests.get(Settings.TransmitterSettings.transmitterUrl.format(**business_partner.dict()))
+    # entities.append(EntityModel(**{**business_partner.dict(), "body": res.json()}))
     entities_res: List[EntityConvertModel] = []
     async with aiohttp.ClientSession() as session:
         c = ConvertApp(session, {"convertServerHost": os.getenv("convertServerHost", "http://converter.nadileaf.com")})
         for entity in entities:
-            if config := convert_config["default"]["gllueEntityPush"] and convert_config["default"]["gllueEntityPush"][entity.entityType] is not None:
-                converted_entity, status = await c.convert(config[entity.entityType], entity.body)
+            if entity.entityType == "Resume":
+                converted_entity, status = await c.convert(["ResumeCgl:standard:2023_09_26_02_19_16"], entity.body.get("data",{}).get("standardFields",{}))
+                logger.info(converted_entity)
                 entities_res.append(EntityConvertModel(**{**entity.dict(), "convertBody": converted_entity}))
             else:
                 entities_res.append(EntityConvertModel(**{**entity.dict(), "convertBody": entity.body}))
     logger.info(f"transmitter success->{json.dumps([_.dict() for _ in entities_res],ensure_ascii=False)}")
-    await push_gle_job_order_executor(
+
+    result = await upsert_candidate_to_job_order(
         GleUserConfig(**extra_config),
         SyncConfig(**_sync_config),
-        get_converted_entity(entities_res, "BusinessPartner").convertBody,
-        get_converted_entity(entities_res, "Job").convertBody,
-        get_converted_entity(entities_res, "Resume").convertBody
-    )
-    return {"data": "success"}
+        get_converted_entity(entities_res, "Job"),
+        get_converted_entity(entities_res, "Resume"))
+    return result
 
 
 if __name__ == '__main__':

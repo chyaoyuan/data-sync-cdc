@@ -17,5 +17,5 @@ class GlePullApplication:
         self.client_app = GlePullClient(self.gle_user_config, self.sync_config)
         self.job_order_app = GleJobOrder(self.gle_user_config, self.sync_config)
         self.job_sub_mission_app = GleJobSubMissionInfo(self.gle_user_config, self.sync_config)
-        self.user_app = GleUser(self.gle_user_config, self.sync_config)
+        # self.user_app = GleUser(self.gle_user_config, self.sync_config)
 

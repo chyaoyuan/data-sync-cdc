@@ -5,9 +5,10 @@ from typing import Optional, Literal, List
 import uvicorn
 from loguru import logger
 from aiokafka import AIOKafkaProducer
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from kafkaStorageServer.application import AIOKafkaProducerSession
 from kafkaStorageServer.settings.settings import Settings
 
 app = FastAPI()
@@ -21,37 +22,34 @@ class InsertBody(BaseModel):
 
 producer = None
 
+@app.on_event("startup")
+async def startup_event():
+    global producer
+    producer = AIOKafkaProducerSession(Settings.KafkaSettings.BootstrapServers)
+    await producer.init_producer()
+
 
 @app.put("/v1/{topic}/write")
-async def insert_kafka(topic: Literal["cgl_gllue_candidate_to_transmitter"], body: InsertBody):
-    assert topic in Settings.KafkaSettings.AllowTopics
+async def insert_kafka(topic: str, body: InsertBody):
     global producer
-    if not producer:
-        producer = AIOKafkaProducer(
-            bootstrap_servers=Settings.KafkaSettings.BootstrapServers,
-            value_serializer=lambda v: json.dumps(v).encode('utf-8'))
-    await producer.start()
-    await producer.send_and_wait(topic, value=body.kafkaContent, key=body.kafkaKey, headers=body.kafkaHeader)
-
-    await producer.stop()
+    if topic not in Settings.KafkaSettings.AllowTopics:
+        raise HTTPException(status_code=400, detail="Invalid topic")
+    await producer.send(topic, value=body.kafkaContent, key=body.kafkaKey)
     logger.info(f"topic->{topic} key->{body.kafkaKey}")
     return
 
 
 @app.put("/v1/{topic}/batch-write")
-async def insert_kafka(topic: Literal["cgl_gllue_candidate_to_transmitter"], body: List[InsertBody]):
-    assert topic in Settings.KafkaSettings.AllowTopics
+async def insert_kafka(topic: str, body_list: List[InsertBody]):
     global producer
-    if not producer:
-        producer = AIOKafkaProducer(
-            bootstrap_servers=Settings.KafkaSettings.BootstrapServers,
-            value_serializer=lambda v: json.dumps(v).encode('utf-8'))
-    await producer.start()
+    if topic not in Settings.KafkaSettings.AllowTopics:
+        raise HTTPException(status_code=400, detail="Invalid topic")
     await asyncio.gather(
-        *[producer.send_and_wait(topic, value=_.kafkaContent, key=_.kafkaKey, headers=_.kafkaHeader)for _ in body]
+        *[
+            producer.send(topic, value=body.kafkaContent, key=body.kafkaKey,) for body in body_list
+        ]
     )
-    await producer.stop()
-    logger.info(f"topic->{topic} key->{[i.kafkaKey for i in body]}")
+    logger.info(f"topic->{topic} key->{[i.kafkaKey for i in body_list]}")
     return
 
 if __name__ == '__main__':
