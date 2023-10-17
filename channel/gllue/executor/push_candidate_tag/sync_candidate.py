@@ -40,6 +40,7 @@ async def execute(gle_entity_id,entity,tip_app,schema_app,candidate_push_app,tip
     latest_resume_info = entity.get("mesoorExtraLatestResume")
     resume_sdk_candidate = await tip_app.resume_sdk_app.parse(latest_resume_info["fileName"],
                                                               latest_resume_info["fileContent"])
+    logger.info(resume_sdk_candidate)
     gle_resume, _ = await tip_app.convert_app.convert("Resumegl:standard:2023_07_03_09_34_35", resume_sdk_candidate)
     logger.info(f"gllue-resume->{gle_resume}")
     # 给简历打标签
@@ -52,24 +53,31 @@ async def execute(gle_entity_id,entity,tip_app,schema_app,candidate_push_app,tip
     # 职位名标签
     # 获取职位名
     position_name_list: list = get_jme_s_path_batch(["job_exp_objs[].job_position"], resume_sdk_candidate)
-    duty_tag_info_list = await tip_app.tip_tag_app.expand_flatten(
-        {"texts": [','.join(position_name_list)], "output_category": "position3", "top_k": 3})
-    logger.info(f"duty_tag_list->{duty_tag_info_list}")
-    duty_tag_list = [duty_tag_info["tag"] for duty_tag_info in duty_tag_info_list]
-    gle_resume["tags"] = gle_resume["tags"] + duty_tag_list
-    logger.info(f"duty_tag_list->{duty_tag_list}")
+    duty_tag_list = []
+    if position_name_list:
+
+        duty_tag_info_list = await tip_app.tip_tag_app.expand_flatten(
+            {"texts": [','.join(position_name_list)], "output_category": "position3", "top_k": 3})
+        logger.info(f"duty_tag_list->{duty_tag_info_list}")
+        duty_tag_list = [duty_tag_info["tag"] for duty_tag_info in duty_tag_info_list]
+        gle_resume["tags"] = gle_resume["tags"] + duty_tag_list
+        logger.info(f"duty_tag_list->{duty_tag_list}")
     # 行业
     company_name_list: list = get_jme_s_path_batch(["job_exp_objs[].job_cpy"], resume_sdk_candidate)
-    logger.info(f"company_name_list->{company_name_list}")
-    industry_tag_info_list = await tip_app.tip_tag_app.expand_flatten(
-        {"texts": [','.join(company_name_list)], "output_category": "industry2-hr", "top_k": 3})
-    logger.info(f"industry_tag_info_list->{industry_tag_info_list}")
-    industry_tag_list = [industry_tag_info["tag"] for industry_tag_info in industry_tag_info_list]
-    gle_resume["tags"] = gle_resume["tags"] + industry_tag_list
-    logger.info(f"industry_tag_list->{industry_tag_list}")
+    industry_tag_list = []
+    if company_name_list:
+        logger.info(f"company_name_list->{company_name_list}")
+        industry_tag_info_list = await tip_app.tip_tag_app.expand_flatten(
+            {"texts": [','.join(company_name_list)], "output_category": "industry2-hr", "top_k": 3})
+        logger.info(f"industry_tag_info_list->{industry_tag_info_list}")
+        industry_tag_list = [industry_tag_info["tag"] for industry_tag_info in industry_tag_info_list]
+        gle_resume["tags"] = gle_resume["tags"] + industry_tag_list
+        logger.info(f"industry_tag_list->{industry_tag_list}")
     industry_tag_id = []
+    logger.error(schema_app.field_string_map["industry"])
     for industry_tag_name in industry_tag_list:
-        industry_tag_id.append(str(schema_app.field_string_map["industry"][industry_tag_name]))
+        if industry_id := schema_app.field_string_map["industry"].get(industry_tag_name):
+            industry_tag_id.append(str(industry_id))
 
     logger.info(industry_tag_id)
     industry_tag_id_str = ",".join(industry_tag_id)
@@ -77,7 +85,8 @@ async def execute(gle_entity_id,entity,tip_app,schema_app,candidate_push_app,tip
 
     duty_tag_id = []
     for duty_tag in duty_tag_list:
-        duty_tag_id.append(str(schema_app.field_string_map["function"][duty_tag]))
+        if tag_id := schema_app.field_string_map["function"].get(duty_tag):
+            duty_tag_id.append(str(tag_id))
     duty_tag_id_str = ",".join(duty_tag_id)
     logger.info(duty_tag_id_str)
 
