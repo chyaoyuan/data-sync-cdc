@@ -1,7 +1,6 @@
 import asyncio
 from typing import Optional
 
-from channel.gllue.pull.application.candidate.application import GleEntity
 from utils.logger import logger
 
 from channel.gllue.pull.application.model.sync_model import SyncConfig

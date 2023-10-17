@@ -1,3 +1,4 @@
+import json
 import re
 import urllib.parse
 from urllib.parse import urlencode
@@ -10,6 +11,18 @@ import time
 __all__ = ("GlHoMuraSession", )
 
 from channel.gllue.session.create_token import private_token
+
+
+def login_in_gle_form_data(gle_user_config):
+    fd = aiohttp.FormData()
+    sttt = json.dumps({
+        "password": gle_user_config['extraPassword'],
+        "remember": True,
+        "next": "/",
+        "email": gle_user_config['extraAccount'],
+        "lang": "zh_CN"}, ensure_ascii=False)
+    fd.add_field("data", sttt)
+    return fd
 
 
 class GlHoMuraSession:
@@ -34,17 +47,30 @@ class GlHoMuraSession:
             if not not_use_token:
                 params = kwargs["params"] if "params" in kwargs.keys() else {}
                 token = private_token(self.gle_user_config)
-                print(urllib.parse.quote(token))
-
+                # logger.info(f"gllue_private_token->{urllib.parse.quote(token)}")
                 params["gllue_private_token"] = token
                 params = {k: v for k, v in params.items() if v}
                 kwargs["params"] = params
             url = f"{self.gle_user_config['apiServerHost']}{url}"
-            logger.info(url)
             last_error = Exception("")
             for i in range(self.retry_time):
                 try:
                     res = await session.request(method.upper(), url, ssl=ssl, **kwargs)
+                    # if res.status == 200:
+                    #     info = await res.json()
+                    #     if isinstance(info, dict) and "所访问的url不在允许范围之内" in info.get("message",""):
+                    #         kwargs.get("params",{}).pop("gllue_private_token", None)
+                    #         logger.warning(f"aeskey缺少权限->{url}->{info}")
+                    #         login_in_url = f"{self.gle_user_config['apiServerHost']}/rest/user/login"
+                    #         logger.info(login_in_url)
+                    #         login_in_res = await session.post(login_in_url, data=login_in_gle_form_data(self.gle_user_config),
+                    #                                     ssl=ssl, **kwargs)
+                    #         if not info.get("status"):
+                    #             logger.error(f"登陆失败->{info}")
+                    #         uid_cookie = login_in_res.cookies.get("uid").value
+                    #
+                    #         kwargs["headers"] = {"cookies": f"uid={uid_cookie}"}
+                    #         res = await session.request(method.upper(), url, ssl=ssl, **kwargs)
                     break
                 except Exception as _e:
                     if self.exception_class is None or self.exception_class is Exception:

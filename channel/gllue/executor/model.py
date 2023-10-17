@@ -22,13 +22,50 @@ class ChildEntity(BaseModel):
     convertId: Optional[str] = Field(default="Job:sssssss")
 
 
+_gle_user_config = {
+        "apiServerHost": "https://www.cgladvisory.com",
+        "aesKey": "398b5ec714c59be2",
+        "account": "system@wearecgl.com",
+    }
+base_sync_config = {
+    "syncModel": "Id",
+    "syncAttachment": False,
+}
+_sync_config = {
+
+    "storageModel": "Local",
+    "jsonFileStorageName": "res_20231007.jsonl",
+    "FileStoragePath": "res_20231007.jsonl",
+    "startTime": "2023-08-01 00:00:00",
+    "endTime": "2023-09-01 00:00:00",
+    "recent": "1",
+    "unit": "month",
+    "timeFieldName": "dateAdded__day_range",
+    "idList": [],
+    "convertId": "Resume:standard:2023_09_04_03_27_59",
+    "fieldList": ["attachments", "tags", "functions", "industrys", "locations",],
+    "childFieldList": ["candidateeducation", "candidateexperience", "candidateproject", "candidatelanguage", "candidatequalification"],
+}
+
+# 确定基础同步信息，参数预处理
 class SyncConfig(BaseModel):
-    entityName: str
+    primaryEntityName: str
+    tipEntityName: str
     syncAttachment: Optional[bool] = Field(default=False, description="同步以附件解析为主【只有候选人有附件】")
-    syncModel: Union[Literal['GqlFilter'], Literal[ "TimeRange"], Literal["Recent"], Literal["Id"], None] = Field(default=None,description="同步模式：GQL全局覆盖，时间范围，最近N单位，实体ID")
+    syncModel: Union[Literal['GqlFilter'],
+                     Literal["TimeRange"],
+                     Literal["Recent"],
+                     Literal["IdList"],
+                     Literal["IdRecent"],
+                     Literal["StringType"],
+                     None] = Field(default=None, description="同步模式：GQL全局覆盖，时间范围，最近N单位，实体ID")
     storageModel: Union[Literal['Tip'], Literal['Local'], None] = Field(default=None, description="存入Tip、写本地文件")
-    fileStoragePath: Optional[str] = Field(default=None, description="写本地文件模式文件路径及名称，追加写，examples=result.jsonl")
-    orderBy: Optional[str] = Field(default="-id", description="同步数据排序方式")
+    jsonFileStorageName: Optional[str] = Field(default=None, description="写本地文件名称")
+    storagePath: Optional[str] = Field(default=None, description="写本地文件模式文件路径，jsonl追加写,file存文件对象")
+
+    jsonFileStoragePath: Optional[str] = Field(default=None, description="json-写本地文件路径")
+    baseAttachmentFileStoragePath: Optional[str] = Field(default=None, description="附件-写本地文件路径")
+
     # GQL 同步模式
     gql: Optional[str] = Field(default=None, description="覆写谷露筛选条件")
     # 最近N单位
@@ -43,9 +80,10 @@ class SyncConfig(BaseModel):
         Literal['mpcDate__day_range'],
         Literal['lastUpdateDate__day_range'],
         Literal['latest_action__day_range'],
-        Literal['lastContactDate__day_range'], None] = Field(default=None, description="时间段筛选的字段，如添加日期、最后更新时间")
+        Literal['lastContactDate__day_range'], None] = Field(default="lastUpdateDate__day_range", description="时间段筛选的字段，如添加日期、最后更新时间")
     # ID
-    idList: Optional[List[str]] = Field(default=[], description="实体ID列表")
+    idList: Optional[List[int]] = Field(default=[], description="实体ID列表")
+    # IdRecent
     fieldList: Optional[list] = Field(default=[], description="同步该实体需要的额外字段(不需要请求gllueSchema)")
     childFieldList: Optional[list] = Field(default=[], description="同步该实体需要的额外字段(需要请求gllueSchema)")
     extraEntity: List[ChildEntity] = Field(default=[], description="同步有关系的的子实体，如职位下的候选人")
@@ -59,11 +97,18 @@ class SyncConfig(BaseModel):
         end_time = values.get("endTime")
         unit = values.get("unit")
         recent = values.get("recent")
-        if not sync_model:
-            return values
+        assert sync_model
+        # 除了ID同步模式【IdList、IdRecent】，其他都使用gql参数作为筛选条件
         if values.get("gql") and sync_model == "GqlFilter":
-            return values
+            pass
+        elif sync_model == "IdList":
+            assert values["idList"]
 
+        elif sync_model == "IdRecent":
+            id_recent = values["IdRecent"]
+            min_index = int(id_recent.split("-")[0])
+            max_index = int(id_recent.split("-")[1])
+            values["idList"] = [i for i in range(min_index, max_index+1)]
         elif sync_model == "TimeRange":
             gql = values["timeFieldName"] + "=" + quote(start_time + "," + end_time)
             values["gql"] = gql
@@ -73,18 +118,28 @@ class SyncConfig(BaseModel):
             start_time, end_time = parse_time_interval({"unit": unit, "recent": recent})
             gql = values["timeFieldName"] + "=" + quote(start_time + "," + end_time)
             values["gql"] = gql
+        if values["storageModel"] == "Local":
+            path = values["storagePath"]
+            values["jsonFileStoragePath"] = f'{path}/{values["primaryEntityName"]}'
+            values["baseAttachmentFileStoragePath"] = f'{path}/{values["primaryEntityName"]}'
+
         return values
 # Tip配置
 
 
 class TipConfig(BaseModel):
-    Authorization: str
-    spaceId: str
-    userId: str
+    Authorization: Optional[str]
+    # spaceId: str
+    userId: Optional[str]
     tenantAlias: str
 
     @classmethod
     def transform(cls, source_data: dict):
+        if not source_data.get("jwtToken"):
+            return cls(
+            **source_data
+        )
+
         token_not_bearer = source_data["jwtToken"].replace("Bearer ", "")
         user_info = jwt.decode(token_not_bearer, algorithms=["HS512"], options={"verify_signature": False})
         return cls(

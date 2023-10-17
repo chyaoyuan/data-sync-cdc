@@ -1,4 +1,7 @@
 from typing import Optional, Literal, List
+
+import jmespath
+
 from channel.gllue.pull.application.attachment.application import GleAttachment
 
 from channel.gllue.pull.application.entity.application import GleEntityApplication
@@ -6,13 +9,10 @@ from channel.gllue.pull.application.model.sync_model import BaseSyncConfig
 from channel.gllue.pull.application.schema.application import GleSchema
 
 
-
-class GleUserApplication(GleEntityApplication):
+class GleClientContractApplication(GleEntityApplication):
     add_field_list = []
     # add_field_list = ["attachments", "tags", "functions", "industrys", "locations"]
-    entityType: str = "user".lower()
-    # 每页最大条数
-    total_count: int = 100
+    entityType: str = "clientcontract".lower()
     # 每个请求延迟N秒
     sleep_time = 0
     # 最大并发数
@@ -33,6 +33,11 @@ class GleUserApplication(GleEntityApplication):
     async def init_schema(self):
         await self.schema_app.initialize_field_map_field(self.entityType)
 
+    # def create_source_url(self, entity_path: str):
+    #     # 合同没有展示页所以贴上公司链接
+    #     if jmespath.search("partA")
+    #         return f"{self.gle_user_config.apiServerHost}/crm/client/detail?id={params['clientId']}"
+
     def create_extra_entity_id_map(self, result: dict):
         entity_type_list = list(result.keys())
         entity_type_list.remove(self.entityType)
@@ -40,9 +45,3 @@ class GleUserApplication(GleEntityApplication):
         for entity_type in entity_type_list:
             new_map[entity_type] = self.schema_app._create_extra_entity_id_map(result)
         return new_map
-
-
-
-
-
-

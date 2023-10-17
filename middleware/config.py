@@ -17,7 +17,8 @@ class Settings:
         "AIRFLOW_CONTROLLER_SERVER", "https://data-sync.mesoor.com/api/airflow-controller"
     )
     # transmitter_v2_server: str = os.getenv("TRANSMITTER_V2_SERVER", "https://transmitter.nadileaf.com/v2/entity")
-    transmitter_v2_server: str = os.getenv("TRANSMITTER_V2_SERVER", "https://ruleengine.nadileaf.com")
+    # transmitter_v2_server: str = os.getenv("TRANSMITTER_V2_SERVER", "https://ruleengine.nadileaf.com")
+    transmitter_v2_server: str = os.getenv("TRANSMITTER_V2_SERVER", "http://localhost:57978")
     rule_engine_server: str = os.getenv("RULE_ENGINE_SERVER", "http://localhost:57978")
     # rule_engine_server: str = os.getenv("RULE_ENGINE_SERVER", "https://ruleengine.nadileaf.com")
     transmitter_schema_server: str = os.getenv("TRANSMITTER_SCHEMA_SERVER", "https://transmitter-schema.nadileaf.com")

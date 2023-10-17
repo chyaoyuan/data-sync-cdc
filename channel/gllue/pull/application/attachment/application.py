@@ -3,6 +3,9 @@ from cgi import parse_header
 from typing import Optional, Literal, List, Union
 from urllib.parse import unquote, urlencode
 from datetime import datetime
+
+from loguru import logger
+
 from channel.gllue.pull.application.schema.application import GleSchema
 
 
@@ -25,7 +28,6 @@ class GleAttachment(GleSchema):
             func=self.request_response_callback)
         if entity:
             entity["mesoorExtraAttachments"] = attachments_info['result']["attachment"]
-
         for attachment in entity["mesoorExtraAttachments"]:
             # {
             #      "dateAdded": "2023-09-20 22:11:43",
@@ -46,9 +48,6 @@ class GleAttachment(GleSchema):
             )
             _, params = parse_header(headers.get("Content-Disposition"))
             filename = unquote(params.get('filename'))
-
-            # with open("xxx.doc", "wb") as f:
-            #     f.write(con)
             attachment["fileName"] = filename
             attachment["fileContent"] = base64.b64encode(con).decode()
 

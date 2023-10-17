@@ -17,7 +17,8 @@ class GleFieldType(str,Enum):
     text = "text"
     date = "date"
     decimal = "decimal"
-
+    datetime = 'datetime'
+    double = 'double'
 
 class SchemaFieldInfo(BaseModel, extra=Extra.allow):
     """schema的每个字段详情"""

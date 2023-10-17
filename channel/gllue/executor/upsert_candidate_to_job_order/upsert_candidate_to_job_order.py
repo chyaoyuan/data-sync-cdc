@@ -50,7 +50,7 @@ async def upsert_candidate_to_job_order(gle_user_config: GleUserConfig,
         return True
     # 如果是来源tip的，手机号和邮箱必有一个
     if not tip_phone and not tip_email:
-        return {"message": f"候选人{candidate.openId}缺少手机号或邮箱不回写谷露系统"}
+        return {"message": f"候选人{candidate.openId}缺少手机号和邮箱不回写谷露系统"}
     candidate_info = await gle_pull_app.candidate_app.get_candidate_by_contact_gql({"mobile": tip_phone, "email": tip_email})
     if candidate_info:
         # if not await gle_pull_app.job_sub_mission_app.check_candidate_in_job_order_by_job_order_id(gle_job_order_id, candidate_info["id"]):

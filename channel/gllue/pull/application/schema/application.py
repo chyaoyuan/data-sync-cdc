@@ -18,6 +18,9 @@ class GleSchema(BaseApplication):
     # 谷露需要进行ID转换的字段
     # system_field_name_list = ["function", "industry", "city", "team", "channel", "profile"]
     system_field_name_list = ["function", "industry", "city"]
+    # 当检查到子实体有存在entity_list内的引用关系时，会自动添加字段
+    # 比如候选人工作经历candidateexperience的schema里有candidateexperience_set__client
+    entity_list = []
 
     def __init__(self, gle_user_config: dict):
         super().__init__(gle_user_config)
@@ -56,6 +59,11 @@ class GleSchema(BaseApplication):
 
         return flat_dict
 
+    @staticmethod
+    def _create_extra_entity_id_map(entity_list):
+        """将同时同步过来的其它实体生成map"""
+        return {_["id"]: _ for _ in entity_list}
+
     def mesoor_extra(self, data, extra_entity_map: dict, field_name_list: list):
         if isinstance(data, dict):
             to_update = {}
@@ -90,8 +98,20 @@ class GleSchema(BaseApplication):
                 self.mesoor_extra(item, extra_entity_map, field_name_list)
         return data
 
+    def merge_fields(self,entity_type, source_entity_list: list, child_field_name_list: list, result):
+        entity_list = []
+        for index, candidate in enumerate(source_entity_list):
+            entity_id = candidate["id"]
+            entity = {**candidate}
+            for child_field_name in child_field_name_list:
+                _ = self.get_field_name_list_child_from_res(entity_id, entity_type, result.get(child_field_name))
+                entity[child_field_name] = _
+            entity_list.append(entity)
+        return entity_list
+
     async def initialize_field_map_field(self, entity_name: str):
         entity_schema = await self.get_schema(entity_name)
+        logger.info(entity_schema)
         for field_schema in entity_schema:
             name = field_schema["name"]
             map_dict = {}
@@ -108,10 +128,10 @@ class GleSchema(BaseApplication):
                 logger.info(f"schema 字段map生成->{entity_name} -> {name}")
         for file_name in self.system_field_name_list:
             url = self.settings.get_field_schema_url.format(entityType=file_name)
-            res, status = await self.async_session.get(url, ssl=False, func=self.request_response_callback)
+            res, status = await self.async_session.get(url, func=self.request_response_callback)
             if isinstance(res, dict) and (message := res.get("message")):
                 logger.error(f"无法加载字段详情 将去除token重新请求->{file_name} {message}")
-                res, status = await self.async_session.get(url, ssl=False, not_use_token=True, func=self.request_response_callback)
+                res, status = await self.async_session.get(url, not_use_token=True, func=self.request_response_callback)
                 if isinstance(res, dict) and (message := res.get("message")):
                     logger.error(f"最终无法加载字段详情->{file_name} {message}")
                     continue
@@ -141,24 +161,57 @@ class GleSchema(BaseApplication):
     async def get_schema(self, type_name: str):
         # 获取实体 schema
         url = self.settings.get_entity_schema_url.format(entityType=type_name).lower()
-        fields_info, status = await self.async_session.get(url=url, ssl=False, func=self.request_response_callback)
+        fields_info, status = await self.async_session.get(url=url, func=self.request_response_callback)
         if isinstance(fields_info, dict) and fields_info["message"]:
             raise Exception(f"获取谷露Schema失败->{type_name} {status} {url} {fields_info}")
         logger.info(f"获取schema成功->{type_name} ")
         return fields_info
 
+    async def get_model_map_group(self):
+        url = self.settings.get_entity_schema_url.format(entityType="model_map_group").lower()
+        model_map, _ = await self.async_session.get(url, func=self.request_response_callback)
+        _dict = {}
+        for k, v in model_map.items():
+            if v not in _dict.keys():
+                _dict[v] = []
+            _dict[v].append(k)
+        return _dict, model_map
+
+
+    async def get_foreignkey(self, type_name: str):
+        # 只拿到lv2就不递归，两层循环解决
+        new_filed_list = []
+        logger.error(type_name)
+        field_info_list = await self.get_schema(type_name=type_name)
+        field_info_list = [SchemaFieldInfo(**info) for info in field_info_list]
+        for field_info in field_info_list:
+            if field_info.type == "foreignkey" and field_info.name != type_name:
+                lv2_field_info_list = await self.get_schema(type_name=field_info.name)
+                if lv2_field_info_list:
+                    # new_filed_list.append(f"{field_info.name}____name__")
+                    new_filed_list.append(f"{field_info.name}__set__")
+        logger.error(new_filed_list)
+        return new_filed_list
+
+
+
+
 
     async def get_field_name_list(self, type_name: str):
         res = await self.get_schema(type_name=type_name)
         field_name_list = [_["name"] for _ in res]
+        logger.info(field_name_list)
         return field_name_list
 
     async def get_field_name_list_child(self, type_name: str):
         field_info_list: List[dict] = await self.get_schema(type_name=type_name)
+        logger.info(field_info_list)
         # 不干啥，，就是简单定义下model
         _field_info_list: List[SchemaFieldInfo] = [SchemaFieldInfo(**info) for info in field_info_list]
         field_name_list = [f"{type_name}_set__{_.name}" for _ in _field_info_list]
-        return list(set(field_name_list))
+        foreign_key_field_name_list = [f"{type_name}_set__{_.name}__name" for _ in _field_info_list if _.type == "foreignkey"]
+        logger.error(foreign_key_field_name_list)
+        return list(set(field_name_list + foreign_key_field_name_list))
 
     @staticmethod
     def get_field_name_list_child_from_field_list(field_list: list):
