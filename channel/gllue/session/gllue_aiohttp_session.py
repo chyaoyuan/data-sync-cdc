@@ -47,7 +47,7 @@ class GlHoMuraSession:
             if not not_use_token:
                 params = kwargs["params"] if "params" in kwargs.keys() else {}
                 token = private_token(self.gle_user_config)
-                # logger.info(f"gllue_private_token->{urllib.parse.quote(token)}")
+                logger.info(f"gllue_private_token->{urllib.parse.quote(token)}")
                 params["gllue_private_token"] = token
                 params = {k: v for k, v in params.items() if v}
                 kwargs["params"] = params

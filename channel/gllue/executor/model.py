@@ -17,41 +17,22 @@ class GleUserConfig(BaseModel):
 
 
 # 同步规则
-class ChildEntity(BaseModel):
-    entityName: str = Field(title="同步的实体类型", examples="jobOrder")
-    convertId: Optional[str] = Field(default="Job:sssssss")
+class StorageToTipConfig(BaseModel):
+    convertId: str = Field(description="转换ID，用来将谷露数据格式转换成我们的数据格式，不同客户的谷露实体会有不同，谷露支持自建schema")
+    tipEntityName: str = Field(description="转换ID，用来将谷露数据格式转换成我们的数据格式，不同客户的谷露实体会有不同，谷露支持自建schema")
+    storageToTipService: Literal['prod-mesoor-space', 'dev-mesoor-space', 'dev-ruleengine', 'prod-ruleengine'] = Field(description="需要同步到那个服务")
 
 
-_gle_user_config = {
-        "apiServerHost": "https://www.cgladvisory.com",
-        "aesKey": "398b5ec714c59be2",
-        "account": "system@wearecgl.com",
-    }
-base_sync_config = {
-    "syncModel": "Id",
-    "syncAttachment": False,
-}
-_sync_config = {
+class GluEntityConfig(BaseModel):
+    entityName: str = Field(description="谷露的主实体名字，星型同步主节点")
+    # 因为谷露接口原因，同步jobsubmission时与其直接关联的实体实在太多，自动生成的fields字段远超url最大长度，如果配置此字段就不会使用自动生成的fields
+    onlyFields: Optional[str] = Field(default=None, description="会覆盖所有配置-需要同步的字段名称集合,以,分割")
+    extraFieldNameList: Optional[str] = Field(default=None, description="会补充配置-需要同步的字段名称集合,以,分割")
+    # 因为谷露一个实体可能要存入多个服务，比如谷露人才=简历+标签，简历进中央存储，标签进丁少
+    storageToTipConfig: List[StorageToTipConfig]
 
-    "storageModel": "Local",
-    "jsonFileStorageName": "res_20231007.jsonl",
-    "FileStoragePath": "res_20231007.jsonl",
-    "startTime": "2023-08-01 00:00:00",
-    "endTime": "2023-09-01 00:00:00",
-    "recent": "1",
-    "unit": "month",
-    "timeFieldName": "dateAdded__day_range",
-    "idList": [],
-    "convertId": "Resume:standard:2023_09_04_03_27_59",
-    "fieldList": ["attachments", "tags", "functions", "industrys", "locations",],
-    "childFieldList": ["candidateeducation", "candidateexperience", "candidateproject", "candidatelanguage", "candidatequalification"],
-}
 
-# 确定基础同步信息，参数预处理
-class SyncConfig(BaseModel):
-    primaryEntityName: str
-    tipEntityName: str
-    syncAttachment: Optional[bool] = Field(default=False, description="同步以附件解析为主【只有候选人有附件】")
+class SyncConfig(GluEntityConfig):
     syncModel: Union[Literal['GqlFilter'],
                      Literal["TimeRange"],
                      Literal["Recent"],
@@ -60,12 +41,7 @@ class SyncConfig(BaseModel):
                      Literal["StringType"],
                      None] = Field(default=None, description="同步模式：GQL全局覆盖，时间范围，最近N单位，实体ID")
     storageModel: Union[Literal['Tip'], Literal['Local'], None] = Field(default=None, description="存入Tip、写本地文件")
-    jsonFileStorageName: Optional[str] = Field(default=None, description="写本地文件名称")
     storagePath: Optional[str] = Field(default=None, description="写本地文件模式文件路径，jsonl追加写,file存文件对象")
-
-    jsonFileStoragePath: Optional[str] = Field(default=None, description="json-写本地文件路径")
-    baseAttachmentFileStoragePath: Optional[str] = Field(default=None, description="附件-写本地文件路径")
-
     # GQL 同步模式
     gql: Optional[str] = Field(default=None, description="覆写谷露筛选条件")
     # 最近N单位
@@ -86,8 +62,8 @@ class SyncConfig(BaseModel):
     # IdRecent
     fieldList: Optional[list] = Field(default=[], description="同步该实体需要的额外字段(不需要请求gllueSchema)")
     childFieldList: Optional[list] = Field(default=[], description="同步该实体需要的额外字段(需要请求gllueSchema)")
-    extraEntity: List[ChildEntity] = Field(default=[], description="同步有关系的的子实体，如职位下的候选人")
-    convertId: Optional[str] = Field(default="Job:standard:2023_04_10_02_43_42")
+    extraEntity: List[GluEntityConfig] = Field(default=[], description="同步有关系的的子实体，如职位下的候选人")
+
 
     @root_validator(pre=True)
     def generate_and_validate_additional_field(cls, values):
@@ -137,7 +113,7 @@ class TipConfig(BaseModel):
     def transform(cls, source_data: dict):
         if not source_data.get("jwtToken"):
             return cls(
-            **source_data
+              **source_data
         )
 
         token_not_bearer = source_data["jwtToken"].replace("Bearer ", "")

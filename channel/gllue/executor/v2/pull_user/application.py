@@ -3,7 +3,7 @@ import asyncio
 from channel.gllue.executor.base.application import GleExeApp
 
 
-class GlePullClientContract(GleExeApp):
+class GlePullUser(GleExeApp):
 
     pass
 
@@ -19,11 +19,9 @@ if __name__ == '__main__':
         "syncAttachment": False,
     }
     _sync_config = {
-        "primaryEntityName": "clientContract".lower(),
-        "tipEntityName": "Contract",
+        "primaryEntityName": "user",
         "syncModel": "TimeRange",
         "storageModel": "Local",
-        "jsonFileStorageName": "gllue_client_contract_2013_10_16.jsonl",
         "storagePath": "./data",
         "orderBy": "id",
         "startTime": "2023-08-01 00:00:00",
@@ -31,11 +29,8 @@ if __name__ == '__main__':
         "recent": "1",
         "unit": "month",
         "timeFieldName": "dateAdded__day_range",
-        "convertId": "cgltest:gllue:gllue_client_contract_to_Contract",
+        "convertId": "Resume:standard:2023_09_04_03_27_59",
 
     }
-    tip_config = {
-        "tenantAlias": "bklj6280h0y7x"
-    }
-    g = GlePullClientContract(_gle_user_config,base_sync_config, _sync_config,tip_config)
+    g = GlePullUser(_gle_user_config,base_sync_config, _sync_config)
     asyncio.run(g.sync())

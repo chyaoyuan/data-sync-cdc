@@ -25,6 +25,7 @@ from channel.gllue.pull.application.base.model import BaseResponseModel
 class GleEntityApplication(BaseApplication):
     add_field_list = None
     entityType: str = None
+    # 100jobsubmission会超长
     total_count: int = 100
 
     def __init__(self, gle_user_config: dict, base_sync_config: dict):
@@ -112,7 +113,7 @@ class GleEntityApplication(BaseApplication):
             return entity_list, response
 
     async def create_tasks(self, field_name_list, id_list: Optional[List[int]] = None, gql: Optional[str] = None):
-        if self.base_sync_config.syncModel == "Id":
+        if self.base_sync_config.syncModel == "IdList":
             assert id_list
             _id_list = [id_list[i:i + self.total_count] for i in range(0, len(id_list), self.total_count)]
             task_list = [
@@ -125,11 +126,13 @@ class GleEntityApplication(BaseApplication):
         return task_list
 
     async def get_max_page(self, gql: Optional[str] = None) -> int:
+        logger.error(gql)
         info = await self._get_entity_info(page=1, field_name_list="id", check=True, gql=gql)
         i = BaseResponseModel(**info)
         return i.totalpages
 
     async def initialize_field(self, extra_entity_name_list: Optional[List[str]] = None):
+
         schema = await self.schema_app.get_schema(self.entityType)
         logger.info(f"GleSchema entityType->{self.entityType} schema->{schema}")
         extra_entity_name_list = extra_entity_name_list if extra_entity_name_list else []
@@ -144,28 +147,25 @@ class GleEntityApplication(BaseApplication):
         # logger.info(extra_list)
 
         add_child_field_list = list(entity_field_tree.get(self.entityType, []))
-        logger.info(f"添加额外实体下实体->{add_child_field_list}")
+        if add_child_field_list:
+            logger.info(f"添加额外实体下实体->{add_child_field_list}")
         if self.entityType in add_child_field_list:
             add_child_field_list.remove(self.entityType)
-
         add_child_field_set = set(add_child_field_list + extra_entity_name_list)
         # 这个是获得主实体下所有字段的名字
         field_name_list = await self.schema_app.get_field_name_list(self.entityType)
         if self.base_sync_config.syncAttachment:
             field_name_list.append("attachments")
-        logger.info(f"默认->{field_name_list}")
         field_name_list_child = await self.schema_app.get_foreignkey(self.entityType)
-        logger.info(f"默认w->{field_name_list_child}")
 
         field_name_list = field_name_list_child + field_name_list
         self.schema_config[self.entityType] = set(list(field_name_list))
         for child_field in add_child_field_set:
             field_name_list_child = await self.schema_app.get_field_name_list_child(child_field)
-            logger.info(f"默认3->{field_name_list_child}")
             logger.info(f"添加额外子字段->{child_field}")
             self.schema_config[child_field] = field_name_list_child
             field_name_list = field_name_list + field_name_list_child
-        field_name_list = list(set(field_name_list))
+        field_name_list = list(set(field_name_list+["note"]))
         field_name_list = ",".join(field_name_list)
 
         return field_name_list
@@ -185,6 +185,20 @@ class GleEntityApplication(BaseApplication):
                 self.pop_entity_file_content(_entity_cache)
 
         return entity_body
+
+    def get_entity_file_content(self, entity_body: dict, file_info_list: Optional[list] = None):
+        if not file_info_list:
+            file_info_list = []
+        """保存数据到TIP的时候要把附件的base64抹掉"""
+        entity_cache = entity_body
+        if isinstance(entity_cache, dict):
+            if attachments := entity_cache.get("mesoorExtraAttachments", []):
+                file_info_list = file_info_list + attachments
+        elif isinstance(entity_cache, list):
+            for _entity_cache in entity_cache:
+                self.get_entity_file_content(_entity_cache, file_info_list)
+
+        return file_info_list
 
     def create_source_url(self, params: dict):
         # 合同没有展示页所以贴上公司链接

@@ -19,6 +19,8 @@ class GleFieldType(str,Enum):
     decimal = "decimal"
     datetime = 'datetime'
     double = 'double'
+    originaltext = "originaltext"
+    files = "files"
 
 class SchemaFieldInfo(BaseModel, extra=Extra.allow):
     """schema的每个字段详情"""

@@ -86,7 +86,6 @@ class GleSchema(BaseApplication):
                         if key_singular in extra_entity_map.keys() and isinstance(value, list):
                             cache_value = []
                             for _ in value:
-
                                 cache_value.append(extra_entity_map[key_singular][_])
                             to_update[new_key] = cache_value
 
@@ -98,8 +97,9 @@ class GleSchema(BaseApplication):
                 self.mesoor_extra(item, extra_entity_map, field_name_list)
         return data
 
-    def merge_fields(self,entity_type, source_entity_list: list, child_field_name_list: list, result):
+    def merge_fields(self, entity_type, source_entity_list: list, child_field_name_list: list, result):
         entity_list = []
+        # 这里多了个需求，就是发票和人才无关，发票和流程有关，流程和人才有关，同步发票时，子实体为流程，把人才合并到流程里
         for index, candidate in enumerate(source_entity_list):
             entity_id = candidate["id"]
             entity = {**candidate}
@@ -147,9 +147,7 @@ class GleSchema(BaseApplication):
                     x = addressparser.transform([location_str]).iloc[0]
                     name = f"{x['省']}-{x['市']}-{x['区']}"
                     _[name] = gle_id
-                    # 城市不需要
-
-                self.field_id_map[file_name] = {_id: name for name, _id in _.items()}
+                self.field_string_map[file_name] = {name: _id for name, _id in _.items()}
                 self.field_string_map[file_name] = _
 
             else:
@@ -177,40 +175,33 @@ class GleSchema(BaseApplication):
             _dict[v].append(k)
         return _dict, model_map
 
-
     async def get_foreignkey(self, type_name: str):
         # 只拿到lv2就不递归，两层循环解决
         new_filed_list = []
-        logger.error(type_name)
         field_info_list = await self.get_schema(type_name=type_name)
+        logger.error(field_info_list)
         field_info_list = [SchemaFieldInfo(**info) for info in field_info_list]
+
         for field_info in field_info_list:
             if field_info.type == "foreignkey" and field_info.name != type_name:
                 lv2_field_info_list = await self.get_schema(type_name=field_info.name)
                 if lv2_field_info_list:
                     # new_filed_list.append(f"{field_info.name}____name__")
                     new_filed_list.append(f"{field_info.name}__set__")
-        logger.error(new_filed_list)
         return new_filed_list
-
-
-
-
 
     async def get_field_name_list(self, type_name: str):
         res = await self.get_schema(type_name=type_name)
         field_name_list = [_["name"] for _ in res]
-        logger.info(field_name_list)
         return field_name_list
 
     async def get_field_name_list_child(self, type_name: str):
         field_info_list: List[dict] = await self.get_schema(type_name=type_name)
-        logger.info(field_info_list)
         # 不干啥，，就是简单定义下model
+        logger.info(field_info_list)
         _field_info_list: List[SchemaFieldInfo] = [SchemaFieldInfo(**info) for info in field_info_list]
         field_name_list = [f"{type_name}_set__{_.name}" for _ in _field_info_list]
         foreign_key_field_name_list = [f"{type_name}_set__{_.name}__name" for _ in _field_info_list if _.type == "foreignkey"]
-        logger.error(foreign_key_field_name_list)
         return list(set(field_name_list + foreign_key_field_name_list))
 
     @staticmethod

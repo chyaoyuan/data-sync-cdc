@@ -23,7 +23,7 @@ class BaseApplication:
     @staticmethod
     async def request_response_callback(res: aiohttp.ClientResponse):
         if res.status != 200:
-            raise Exception(f"{res.status} {await res.text()}")
+            raise Exception(f"{res.status} {await res.text()} {res.url}")
         _ = await res.json()
         # if isinstance(_,dict):
         #     message = _.get("message")
@@ -37,7 +37,6 @@ class BaseApplication:
             return await res.text(), res.status
         if res.status == 200:
             response = await res.json()
-            logger.info(response)
             if "status" in response.keys():
                 raise Exception(f"res->{response}")
 

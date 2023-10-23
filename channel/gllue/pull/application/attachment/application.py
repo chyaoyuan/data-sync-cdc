@@ -51,6 +51,8 @@ class GleAttachment(GleSchema):
             attachment["fileName"] = filename
             attachment["fileContent"] = base64.b64encode(con).decode()
 
+
+
         latest_date = None
         for attachment_info in entity["mesoorExtraAttachments"]:
             if attachment_info["type"] == "candidate":

@@ -15,7 +15,13 @@ class ChildEntity(BaseModel):
 
 class BaseSyncConfig(BaseModel):
     orderBy: Optional[str] = Field(default="-id", description="排序方式，详见谷露")
-    syncModel: Union[Literal['GqlFilter'], Literal["TimeRange"], Literal["Recent"], Literal["Id"], None] = Field(default=None,description="同步模式：GQL全局覆盖，时间范围，最近N单位，实体ID")
+    syncModel: Union[Literal['GqlFilter'],
+                     Literal["TimeRange"],
+                     Literal["Recent"],
+                     Literal["IdList"],
+                     Literal["IdRecent"],
+                     Literal["StringType"],
+                     None] = Field(default=None, description="同步模式：GQL全局覆盖，时间范围，最近N单位，实体ID")
     syncAttachment: Optional[bool] = Field(default=True, description="是否同步附件【只有候选人有附件】")
 
 

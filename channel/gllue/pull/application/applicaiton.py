@@ -1,6 +1,9 @@
 from channel.gllue.pull.application.candidate.application import GleCandidateApplication
 # from channel.gllue.pull.application.client.application import GlePullClient
+from channel.gllue.pull.application.client.application import GlePullClient
 from channel.gllue.pull.application.clientcontract.application import GleClientContractApplication
+from channel.gllue.pull.application.entity.application import GleEntityApplication
+from channel.gllue.pull.application.invoice.application import GlePullInvoice
 from channel.gllue.pull.application.jobOrder.application import GleJobOrder
 from channel.gllue.pull.application.jobSubMission.application import GleJobSubMissionInfo
 from channel.gllue.pull.application.schema.application import GleSchema
@@ -14,10 +17,14 @@ class GlePullApplication:
         # gle 同步配置
         self.base_sync_config = base_sync_config
         self.schema_app = GleSchema(self.gle_user_config)
+        self.base_entity_in_used = GleEntityApplication(self.gle_user_config, self.base_sync_config)
+
         self.candidate_app = GleCandidateApplication(self.gle_user_config, self.base_sync_config)
-        # self.client_app = GlePullClient(self.gle_user_config, self.sync_config)
-        # self.job_order_app = GleJobOrder(self.gle_user_config, self.sync_config)
-        # self.job_sub_mission_app = GleJobSubMissionInfo(self.gle_user_config, self.sync_config)
+        self.client_app = GlePullClient(self.gle_user_config, self.base_sync_config)
+
+        self.invoice_app = GlePullInvoice(self.gle_user_config, self.base_sync_config)
+        self.joborder_app = GleJobOrder(self.gle_user_config, self.base_sync_config)
+        self.jobsubmission_app = GleJobSubMissionInfo(self.gle_user_config, self.base_sync_config)
         self.user_app = GleUserApplication(self.gle_user_config, self.base_sync_config)
         self.clientcontract_app = GleClientContractApplication(self.gle_user_config, self.base_sync_config)
 
