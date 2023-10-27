@@ -25,7 +25,7 @@ class GleEntity(GleSchema):
     entityType: str = "candidate".lower()
 
     # 每页最大条数
-    total_count: int = 100
+    total_count: int = 1
     # 每个请求延迟N秒
     sleep_time = 0
     # 最大并发数
@@ -221,6 +221,8 @@ class GleEntity(GleSchema):
     async def get_max_page(self, overwrite_gql: Optional[str] = None) -> int:
         info = await self.___get_candidate_info(page=1, field_name_list="id", check=True, overwrite_gql=overwrite_gql)
         i = BaseResponseModel(**info)
+        logger.info(overwrite_gql)
+        logger.info(i.dict())
         return i.totalpages
 
     async def initialize_field(self, add_field_list: Optional[list] = None,

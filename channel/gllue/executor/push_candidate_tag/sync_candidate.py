@@ -15,15 +15,18 @@ from channel.gllue.executor.model import GleUserConfig, SyncConfig
 def count_years(date_ranges):
     total_years = 0
     for date_range in date_ranges:
-        start_date = datetime.strptime(date_range["start_date"], "%Y.%m")
+        try:
+            start_date = datetime.strptime(date_range["start_date"], "%Y.%m")
 
-        if date_range["end_date"] == "至今":
-            end_date = datetime.now()
-        else:
-            end_date = datetime.strptime(date_range["end_date"], "%Y.%m")
+            if date_range["end_date"] == "至今":
+                end_date = datetime.now()
+            else:
+                end_date = datetime.strptime(date_range["end_date"], "%Y.%m")
 
-        delta = end_date - start_date
-        total_years += delta.days / 365.0  # 将天数转换为年数并累加
+            delta = end_date - start_date
+            total_years += delta.days / 365.0  # 将天数转换为年数并累加
+        except Exception as e:
+            pass
     return total_years
 
 
@@ -40,6 +43,9 @@ async def execute(gle_entity_id,entity,tip_app,schema_app,candidate_push_app,tip
     latest_resume_info = entity.get("mesoorExtraLatestResume")
     resume_sdk_candidate = await tip_app.resume_sdk_app.parse(latest_resume_info["fileName"],
                                                               latest_resume_info["fileContent"])
+    if not resume_sdk_candidate:
+        logger.info(f"pass->{gle_entity_id}")
+        return
     logger.info(resume_sdk_candidate)
     gle_resume, _ = await tip_app.convert_app.convert("Resumegl:standard:2023_07_03_09_34_35", resume_sdk_candidate)
     logger.info(f"gllue-resume->{gle_resume}")
@@ -114,9 +120,10 @@ async def execute(gle_entity_id,entity,tip_app,schema_app,candidate_push_app,tip
          6: "职业教育",
          7: "培训机构"}
     college_type_list = get_jme_s_path_batch(["education_objs[].edu_college_type"], resume_sdk_candidate)
-    logger.info([int(college_type_id) for college_type_id in college_type_list])
-    max_college_type = max([int(college_type_id) for college_type_id in college_type_list])
-    gle_resume["tags"].append(college_type_map.get(max_college_type))
+    if college_type_list:
+        if [int(college_type_id) for college_type_id in college_type_list]:
+            max_college_type = max([int(college_type_id) for college_type_id in college_type_list])
+            gle_resume["tags"].append(college_type_map.get(max_college_type))
     time_list = [{"start_date": i.get("start_date"), "end_date": i.get("end_date")} for i in
                  resume_sdk_candidate.get("job_exp_objs", []) if i.get("start_date") and i.get("end_date")]
     work_years = count_years(time_list)
