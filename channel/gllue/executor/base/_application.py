@@ -26,7 +26,10 @@ class GleExeApp:
         self.x_editor = "data-sync-cdc"
         self.gle_pull_app = GlePullApplication(self.gle_user_config, self.gle_base_config.dict())
 
-    async def put_node_(self, tip_app, entity_list):
+    async def xx(self,func1,func2):
+        res, _ = await func1
+
+    async def put_node(self, tip_app,entity_list):
         if self.sync_config.storageModel == "Tip":
             await asyncio.gather(*[
                 self.put_to_tip(
@@ -67,22 +70,21 @@ class GleExeApp:
         converted_entity_list, _ = await tip_app.convert_app.convert_batch(
             storage_to_tip_config.convertId, entity_list_copy)
         for converted_entity, entity_copy in zip(converted_entity_list, entity_list_copy):
-            file_info_list = self.gle_pull_app.base_entity_in_used.get_entity_file_content(entity_copy)
             converted_entity["rawData"] = {}
             converted_entity["rawData"]["content"] = entity_copy
-            converted_entity["rawData"]["files"] = file_info_list
+            converted_entity["rawData"]["files"] = \
+                self.gle_pull_app.base_entity_in_used.get_entity_file_content(entity_copy)
             converted_entity["standardFields"]["source"] = self.source
             mesoor_extra_in_used_config = converted_entity["customFields"].pop("mesoorExtraInUsedConfig")
             config = MesoorExtraInUsedConfig(**mesoor_extra_in_used_config)
             if "prod-mesoor-space" == storage_to_tip_config.storageToTipService:
                 info = converted_entity if not storage_to_tip_config.jmeSPath else \
                     jmespath.search(storage_to_tip_config.jmeSPath, converted_entity)
-                if info:
-                    await tip_app.tip_space_app.upsert_note(
-                        storage_to_tip_config.tipEntityName,
-                        config.urlPath.openId,
-                        info, self.tip_config.tenantAlias)
-                    pass
+                await tip_app.tip_space_app.upsert_note(
+                    storage_to_tip_config.tipEntityName,
+                    config.urlPath.openId,
+                    info, self.tip_config.tenantAlias)
+                pass
             elif "rule" in storage_to_tip_config.storageToTipService:
                 _, status = await tip_app.transmitter_app.put(
                     self.tip_config.tenantAlias,
@@ -138,12 +140,13 @@ class GleExeApp:
             task_list = await primary_entity_app.create_tasks(field_name_list, self.sync_config.syncAttachment, id_list=self.sync_config.idList)
         else:
             task_list = await primary_entity_app.create_tasks(field_name_list, self.sync_config.syncAttachment,  gql=self.sync_config.gql)
-        for entity_task in task_list:
-            entity_list, source_response = await entity_task
-            if not entity_list:
-                continue
-            logger.info(f"获取到主实体->{self.sync_config.entityName}->{[i['id'] for i in entity_list]}")
-            await self.put_node_(tip_app, entity_list)
+
+        # for entity_task in asyncio.as_completed(task_list):
+        #     entity_list, source_response = await entity_task
+        #     if not entity_list:
+        #         continue
+        #     logger.info(f"获取到主实体->{self.sync_config.entityName}->{[i['id'] for i in entity_list]}")
+        for task_list
 
 
                 # async with aiofiles.open(f"./data/source-{self.sync_config.entityName}.jsonl", "a") as f:
@@ -165,10 +168,14 @@ class GleExeApp:
                         if extra_entity_config.extraFieldNameList:
                             extra_field_name_list = f"{extra_field_name_list},{extra_entity_config.extraFieldNameList}"
                         extra_task_list = await extra_app.create_tasks(extra_field_name_list,extra_entity_config.syncAttachment, id_list)
+
+                        # for extra_entity_task in asyncio.as_completed(extra_task_list):
+                        #     extra_entity_list, _useless = await extra_entity_task
                         for extra_entity_task in extra_task_list:
                             extra_entity_list, _useless = await extra_entity_task
                             if not extra_entity_list:
                                 continue
+
                             if self.sync_config.storageModel == "Tip":
                                 await asyncio.gather(*[
                                     self.put_to_tip(
@@ -177,7 +184,6 @@ class GleExeApp:
                                         config,
                                         extra_entity_config.entityName,
                                         ) for config in extra_entity_config.storageToTipConfig])
-
                                 # async with aiofiles.open(f"./data/source-{extra_entity_config.entityName}.jsonl", "a") as f:
                                 #     await asyncio.gather(*[
                                 #         f.write(

@@ -16,9 +16,6 @@ class BaseApplication:
         self.async_session: GlHoMuraSession = GlHoMuraSession(
             client_session=aiohttp.ClientSession, gle_user_config=self.gle_user_config.dict(), retry_when=lambda x: not isinstance(x, asyncio.exceptions.TimeoutError)
         )
-    #     self.normal_session = HoMuraSession(
-    #         aiohttp.ClientSession, retry_interval=1, retry_when=lambda x: not isinstance(x, asyncio.exceptions.TimeoutError)
-    # )
 
     @staticmethod
     async def request_response_callback(res: aiohttp.ClientResponse):

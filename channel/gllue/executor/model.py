@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Literal, List, Optional, Union
 import jwt
 from pydantic import BaseModel, Field, root_validator
@@ -7,6 +8,15 @@ import urllib.parse
 from middleware.settings.entitySorageSettings import parse_time_interval
 from pydantic import BaseModel, Field, root_validator
 from urllib.parse import parse_qs
+
+
+class SyncModel(str, Enum):
+    GqlFilter = "GqlFilter"
+    TimeRange = "TimeRange"
+    Recent = "Recent"
+    IdList = "IdList"
+    IdRecent = "IdRecent"
+    StringType = "StringType"
 
 
 # 谷露配置
@@ -21,6 +31,7 @@ class StorageToTipConfig(BaseModel):
     convertId: str = Field(description="转换ID，用来将谷露数据格式转换成我们的数据格式，不同客户的谷露实体会有不同，谷露支持自建schema")
     tipEntityName: str = Field(description="转换ID，用来将谷露数据格式转换成我们的数据格式，不同客户的谷露实体会有不同，谷露支持自建schema")
     storageToTipService: Literal['prod-mesoor-space', 'dev-mesoor-space', 'dev-ruleengine', 'prod-ruleengine'] = Field(description="需要同步到那个服务")
+    jmeSPath: Optional[str] = Field(default=None)
 
 
 class GluEntityConfig(BaseModel):
@@ -30,16 +41,11 @@ class GluEntityConfig(BaseModel):
     extraFieldNameList: Optional[str] = Field(default=None, description="会补充配置-需要同步的字段名称集合,以,分割")
     # 因为谷露一个实体可能要存入多个服务，比如谷露人才=简历+标签，简历进中央存储，标签进丁少
     storageToTipConfig: List[StorageToTipConfig]
+    syncAttachment: Optional[bool] = Field(default=True,)
 
 
 class SyncConfig(GluEntityConfig):
-    syncModel: Union[Literal['GqlFilter'],
-                     Literal["TimeRange"],
-                     Literal["Recent"],
-                     Literal["IdList"],
-                     Literal["IdRecent"],
-                     Literal["StringType"],
-                     None] = Field(default=None, description="同步模式：GQL全局覆盖，时间范围，最近N单位，实体ID")
+    syncModel: SyncModel = Field(default=SyncModel.GqlFilter.value, description="同步模式：GQL全局覆盖，时间范围，最近N单位，实体ID")
     storageModel: Union[Literal['Tip'], Literal['Local'], None] = Field(default=None, description="存入Tip、写本地文件")
     storagePath: Optional[str] = Field(default=None, description="写本地文件模式文件路径，jsonl追加写,file存文件对象")
     # GQL 同步模式

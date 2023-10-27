@@ -8,7 +8,7 @@ if __name__ == '__main__':
     _sync_config = {
         "syncModel": "GqlFilter",
         "storageModel": "Tip",  # Local # Tip
-        "gql": "keyword=3727",
+        "gql": "",
         **CGLConfig.entity_contract,
         "extraFieldNameList": "citys",
         "extraEntity": [CGLConfig.entity_client, CGLConfig.entity_user]}

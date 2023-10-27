@@ -18,9 +18,7 @@ from urllib.parse import urlencode
 
 
 class GlePullInvoice(GleEntityApplication):
-    # 每页最大条数
 
-    total_count: int = 100
     entityType = "invoice".lower()
 
     def __init__(self, gle_user_config: dict, base_sync_config: dict):

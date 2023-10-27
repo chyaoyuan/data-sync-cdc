@@ -26,15 +26,9 @@ from channel.gllue.pull.application.base.model import BaseResponseModel
 
 
 class GleCandidateApplication(GleEntityApplication):
-    add_field_list = []
-    # add_field_list = ["attachments", "tags", "functions", "industrys", "locations"]
     entityType: str = "candidate".lower()
-    # 每页最大条数
-    total_count: int = 100
-    # 每个请求延迟N秒
-    sleep_time = 0
-    # 最大并发数
-    concurrency_level = 20
+    total_count: int = 1
+
 
     def __init__(self, gle_user_config: dict, base_sync_config: dict):
         super().__init__(gle_user_config, base_sync_config)

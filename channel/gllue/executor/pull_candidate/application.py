@@ -28,8 +28,8 @@ class GleExeApp:
         async with aiohttp.ClientSession() as session:
             gle_pull_app = GlePullApplication(self.gle_user_config, self.sync_config.dict())
 
-            field_name_list: str = await gle_pull_app.candidate_app.initialize_field(self.sync_config.fieldList,
-                                                            self.sync_config.childFieldList)
+            field_name_list: str = await gle_pull_app.candidate_app.initialize_field(
+                self.sync_config.syncAttachment, self.sync_config.fieldList, self.sync_config.childFieldList)
             task_list = await gle_pull_app.candidate_app.create_tasks(field_name_list)
             for candidate_task in asyncio.as_completed(task_list):
                 entity_list, source_response = await candidate_task

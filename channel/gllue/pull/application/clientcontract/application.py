@@ -10,13 +10,9 @@ from channel.gllue.pull.application.schema.application import GleSchema
 
 
 class GleClientContractApplication(GleEntityApplication):
-    add_field_list = []
-    # add_field_list = ["attachments", "tags", "functions", "industrys", "locations"]
+
     entityType: str = "clientcontract".lower()
-    # 每个请求延迟N秒
-    sleep_time = 0
-    # 最大并发数
-    concurrency_level = 20
+    total_count: int = 5
 
     def __init__(self, gle_user_config: dict, base_sync_config: dict):
         super().__init__(gle_user_config, base_sync_config)

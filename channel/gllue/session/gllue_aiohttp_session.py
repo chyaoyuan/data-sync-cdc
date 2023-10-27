@@ -27,8 +27,8 @@ def login_in_gle_form_data(gle_user_config):
 
 class GlHoMuraSession:
     def __init__(
-            self, client_session: Type[aiohttp.ClientSession], gle_user_config: dict, *, retry_time: int = 3,
-            retry_interval: Optional[int] = None, retry_when: Optional[Callable] = None,
+            self, client_session: Type[aiohttp.ClientSession], gle_user_config: dict, *, retry_time: int = 5,
+            retry_interval: Optional[int] = 60, retry_when: Optional[Callable] = None,
             exception_class: Optional[Any] = None, exception_kwargs: Optional[dict] = None
     ):
         self.client_session = client_session
@@ -47,7 +47,7 @@ class GlHoMuraSession:
             if not not_use_token:
                 params = kwargs["params"] if "params" in kwargs.keys() else {}
                 token = private_token(self.gle_user_config)
-                logger.info(f"gllue_private_token->{urllib.parse.quote(token)}")
+                # logger.info(f"gllue_private_token->{urllib.parse.quote(token)}")
                 params["gllue_private_token"] = token
                 params = {k: v for k, v in params.items() if v}
                 kwargs["params"] = params

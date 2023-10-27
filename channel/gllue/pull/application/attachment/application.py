@@ -50,19 +50,17 @@ class GleAttachment(GleSchema):
             filename = unquote(params.get('filename'))
             attachment["fileName"] = filename
             attachment["fileContent"] = base64.b64encode(con).decode()
-
-
-
-        latest_date = None
-        for attachment_info in entity["mesoorExtraAttachments"]:
-            if attachment_info["type"] == "candidate":
-                date_added = attachment_info["dateAdded"]
-                if date_added is not None:
-                    # 解析日期字符串为datetime对象
-                    date_added = datetime.strptime(date_added, "%Y-%m-%d %H:%M:%S")
-                    if latest_date is None or date_added > latest_date:
-                        latest_date = date_added
-                        latest_dict = attachment_info
-                        entity["mesoorExtraLatestResume"] = latest_dict
+        # latest_date = None
+        # for attachment_info in entity["mesoorExtraAttachments"]:
+        #     if attachment_info["type"] == "candidate":
+        #         date_added = attachment_info["dateAdded"]
+        #         if date_added is not None:
+        #             # 解析日期字符串为datetime对象
+        #             date_added = datetime.strptime(date_added, "%Y-%m-%d %H:%M:%S")
+        #             if latest_date is None or date_added > latest_date:
+        #                 latest_date = date_added
+        #                 latest_dict = attachment_info
+        #                 entity["mesoorExtraLatestResume"] = latest_dict
+        return attachments_ids.split(',')
 
 

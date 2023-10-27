@@ -33,4 +33,4 @@ class GlePullApplication:
         if hasattr(self, app_attribute_name):
             return getattr(self, app_attribute_name)
         else:
-            raise ValueError(f"Invalid entity_name: {entity_name}")
+            return GleEntityApplication(self.gle_user_config, self.base_sync_config)

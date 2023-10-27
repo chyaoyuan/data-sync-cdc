@@ -179,7 +179,6 @@ class GleSchema(BaseApplication):
         # 只拿到lv2就不递归，两层循环解决
         new_filed_list = []
         field_info_list = await self.get_schema(type_name=type_name)
-        logger.error(field_info_list)
         field_info_list = [SchemaFieldInfo(**info) for info in field_info_list]
 
         for field_info in field_info_list:

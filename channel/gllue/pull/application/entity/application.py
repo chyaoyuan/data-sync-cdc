@@ -40,8 +40,6 @@ class GleEntityApplication(BaseApplication):
         # 用户/操作者
         self.gle_user_id: Optional[int] = None
 
-        self.limit = asyncio.Semaphore(10)
-
     async def init_schema(self):
         await self.schema_app.initialize_field_map_field(self.entityType)
 
@@ -79,19 +77,21 @@ class GleEntityApplication(BaseApplication):
         for attachment in entity.get("attachment", []):
             attachment.pop("fileContent", None)
 
-    async def get_entity_info(self, page: int, field_name_list: str, gql: str, check: bool = False):
-        async with self.limit:
+    async def get_entity_info(self, limit, page: int, sync_attachment: bool, field_name_list: str, gql: str, check: bool = False):
+        async with limit:
             response = await self._get_entity_info(page, field_name_list, check, gql)
             if not response:
-                return [{"id": _id for _id in gql.replace("id__s=", "").split(",")}], {}
+                return [], {}
             result = response.get("result", {})
             # 将外部字段合并
             child_field_name_list = self.schema_app.get_field_name_list_child_from_field_list(field_name_list.split(","))
             entity_list = self.schema_app.merge_fields(self.entityType, result[self.entityType], child_field_name_list,result)
             for entity in entity_list:
                 attachments = entity.get("attachments") or None
-                if attachments and self.base_sync_config.syncAttachment:
-                    await self.attachment_app.get_attachment(attachments, entity)
+                if attachments and sync_attachment:
+                    attachments_ids = await self.attachment_app.get_attachment(attachments, entity)
+                    logger.info(f"get_attachment_success: type->{self.entityType} {entity['id']} attachments_ids->{attachments_ids}")
+            logger.error(f"end->{page}")
             # 获取除了本身以外还有哪些实体
             extra_entity_list = list(
                 set(list(result.keys())) - set(child_field_name_list) - {self.entityType}
@@ -112,26 +112,32 @@ class GleEntityApplication(BaseApplication):
                 self.schema_app.mesoor_extra(entity, extra_entity_map, list(extra_entity_map.keys()))
             return entity_list, response
 
-    async def create_tasks(self, field_name_list, id_list: Optional[List[int]] = None, gql: Optional[str] = None):
-        if self.base_sync_config.syncModel == "IdList":
+    async def create_tasks(self, field_name_list, sync_attachment: bool, id_list: Optional[List[int]] = None, gql: Optional[str] = None):
+        _limit = asyncio.Semaphore(1)
+        if self.base_sync_config.syncModel == "IdList" or self.base_sync_config.syncModel == "IdRecent":
             assert id_list
+            if isinstance(id_list[0], int):
+                id_list = [str(i) for i in id_list]
             _id_list = [id_list[i:i + self.total_count] for i in range(0, len(id_list), self.total_count)]
             task_list = [
-                self.get_entity_info
-                (1, field_name_list, gql=f"id__s={','.join(_id_l)}")
-                for _id_l in _id_list]
+                    self.get_entity_info
+                    (_limit, 1, sync_attachment, field_name_list, gql=f"id__s={','.join(_id_l)}")
+                        for _id_l in _id_list]
         else:
             page_total = await self.get_max_page(gql)
-            task_list = [self.get_entity_info(index_page, field_name_list, gql) for index_page in range(1, page_total + 1)]
+            task_list = [
+                self.get_entity_info(_limit, index_page,sync_attachment, field_name_list, gql) for index_page in range(1, page_total + 1)]
         return task_list
 
+
+
     async def get_max_page(self, gql: Optional[str] = None) -> int:
-        logger.error(gql)
         info = await self._get_entity_info(page=1, field_name_list="id", check=True, gql=gql)
         i = BaseResponseModel(**info)
+        logger.info(f"实体{self.entityType}->有{i.totalpages}页 每页->{self.total_count} 总数为->{i.totalcount} gql->{gql}")
         return i.totalpages
 
-    async def initialize_field(self, extra_entity_name_list: Optional[List[str]] = None):
+    async def initialize_field(self, sync_attachment: bool,  extra_entity_name_list: Optional[List[str]] = None):
 
         schema = await self.schema_app.get_schema(self.entityType)
         logger.info(f"GleSchema entityType->{self.entityType} schema->{schema}")
@@ -154,7 +160,7 @@ class GleEntityApplication(BaseApplication):
         add_child_field_set = set(add_child_field_list + extra_entity_name_list)
         # 这个是获得主实体下所有字段的名字
         field_name_list = await self.schema_app.get_field_name_list(self.entityType)
-        if self.base_sync_config.syncAttachment:
+        if sync_attachment:
             field_name_list.append("attachments")
         field_name_list_child = await self.schema_app.get_foreignkey(self.entityType)
 
@@ -197,9 +203,6 @@ class GleEntityApplication(BaseApplication):
         elif isinstance(entity_cache, list):
             for _entity_cache in entity_cache:
                 self.get_entity_file_content(_entity_cache, file_info_list)
-
         return file_info_list
 
-    def create_source_url(self, params: dict):
-        # 合同没有展示页所以贴上公司链接
-        pass
+

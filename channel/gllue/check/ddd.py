@@ -1,0 +1,1 @@
+print("mesoorExtension" in "mesoorExtension".lower())
