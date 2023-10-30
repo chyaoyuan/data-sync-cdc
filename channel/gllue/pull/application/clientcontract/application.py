@@ -1,9 +1,5 @@
 from typing import Optional, Literal, List
-
-import jmespath
-
 from channel.gllue.pull.application.attachment.application import GleAttachment
-
 from channel.gllue.pull.application.entity.application import GleEntityApplication
 from channel.gllue.pull.application.model.sync_model import BaseSyncConfig
 from channel.gllue.pull.application.schema.application import GleSchema

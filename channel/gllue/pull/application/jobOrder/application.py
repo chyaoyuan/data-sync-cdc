@@ -19,7 +19,6 @@ class GleJobOrder(GleEntityApplication):
 
     entityType: str = "jobOrder".lower()
 
-
     def __init__(self, gle_user_config: dict, base_sync_config: dict):
         super().__init__(gle_user_config, base_sync_config)
         self.base_sync_config = BaseSyncConfig(**base_sync_config)

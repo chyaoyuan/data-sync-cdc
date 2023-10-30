@@ -57,10 +57,6 @@ class GleExeApp:
             if attachment_list:
                 logger.info(f"attachment_upload_success-谷露实体->{gle_entity_name}"
                             f" id->{entity_copy['id']} id->{[i['id'] for i in attachment_list]}")
-
-            # await asyncio.gather(
-            #     *[ for attachment in attachment_list]
-            # )
         # 先把附件去掉再请求转换，省带宽 加速
         for entity_copy in entity_list_copy:
             self.gle_pull_app.clientcontract_app.pop_entity_file_content(entity_copy)
@@ -68,6 +64,8 @@ class GleExeApp:
             storage_to_tip_config.convertId, entity_list_copy)
         for converted_entity, entity_copy in zip(converted_entity_list, entity_list_copy):
             file_info_list = self.gle_pull_app.base_entity_in_used.get_entity_file_content(entity_copy)
+            logger.info(converted_entity)
+            logger.info(entity_copy)
             converted_entity["rawData"] = {}
             converted_entity["rawData"]["content"] = entity_copy
             converted_entity["rawData"]["files"] = file_info_list
@@ -90,7 +88,7 @@ class GleExeApp:
                     config.urlPath.openId,
                     self.x_source,
                     self.x_editor,
-                    converted_entity)
+                    converted_entity, config.headers)
                 if status != 200:
                     async with aiofiles.open(f"./data/error_entity_{storage_to_tip_config.tipEntityName}.jsonl","w") as f:
                         await f.write(
@@ -104,10 +102,9 @@ class GleExeApp:
         #     ])
 
     async def execute(self):
-
         tip_app = TipMidApplication({"ConvertServerHost": "http://localhost:65492",
                                      "TipTransmitterServerHost": "http://ruleengine.nadileaf.com",
-                                     "DataSyncStorageDerivationServerHost": "http://localhost:61505",
+                                     "StoreDerivationServerHost": "http://localhost:61505",
                                      "TipSpaceServerHost": "http://mesoor-space.nadileaf.com"})
         # 主实体同步器
         primary_entity_app = self.gle_pull_app.get_app(self.sync_config.entityName)
@@ -144,13 +141,6 @@ class GleExeApp:
                 continue
             logger.info(f"获取到主实体->{self.sync_config.entityName}->{[i['id'] for i in entity_list]}")
             await self.put_node_(tip_app, entity_list)
-
-
-                # async with aiofiles.open(f"./data/source-{self.sync_config.entityName}.jsonl", "a") as f:
-                #     await asyncio.gather(*[
-                #         f.write(json.dumps(self.gle_pull_app.candidate_app.pop_entity_file_content(entity_copy), ensure_ascii=False) + "\n") for entity_copy in entity_list
-                #     ])
-
             # 只取一级关联，否则子子孙孙无穷尽
             result = source_response.get("result", {})
             result.pop(self.sync_config.entityName, None)

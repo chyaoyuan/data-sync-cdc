@@ -63,6 +63,7 @@ class GleEntityApplication(BaseApplication):
                 'page': page,
                 'gql': gql})
         )
+
         self.gle_user_id = res["@odata.user_id"]
         if check:
             return res
@@ -80,18 +81,19 @@ class GleEntityApplication(BaseApplication):
     async def get_entity_info(self, limit, page: int, sync_attachment: bool, field_name_list: str, gql: str, check: bool = False):
         async with limit:
             response = await self._get_entity_info(page, field_name_list, check, gql)
+            logger.info(response)
             if not response:
                 return [], {}
             result = response.get("result", {})
             # 将外部字段合并
             child_field_name_list = self.schema_app.get_field_name_list_child_from_field_list(field_name_list.split(","))
             entity_list = self.schema_app.merge_fields(self.entityType, result[self.entityType], child_field_name_list,result)
+
             for entity in entity_list:
                 attachments = entity.get("attachments") or None
                 if attachments and sync_attachment:
                     attachments_ids = await self.attachment_app.get_attachment(attachments, entity)
                     logger.info(f"get_attachment_success: type->{self.entityType} {entity['id']} attachments_ids->{attachments_ids}")
-            logger.error(f"end->{page}")
             # 获取除了本身以外还有哪些实体
             extra_entity_list = list(
                 set(list(result.keys())) - set(child_field_name_list) - {self.entityType}

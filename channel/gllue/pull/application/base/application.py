@@ -22,10 +22,6 @@ class BaseApplication:
         if res.status != 200:
             raise Exception(f"{res.status} {await res.text()} {res.url}")
         _ = await res.json()
-        # if isinstance(_,dict):
-        #     message = _.get("message")
-        #     if message:
-        #         raise Exception(f"{res.status} {await res.json()}")
         return await res.json(), res.status
 
     @staticmethod

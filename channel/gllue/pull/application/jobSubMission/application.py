@@ -13,7 +13,6 @@ from channel.gllue.pull.application.base.model import BaseResponseModel
 class GleJobSubMissionInfo(GleEntityApplication):
     entityType: str = "jobSubMission".lower()
 
-
     def __init__(self, gle_user_config: dict, base_sync_config: dict):
         super().__init__(gle_user_config, base_sync_config)
         self.base_sync_config = BaseSyncConfig(**base_sync_config)
@@ -72,42 +71,3 @@ class GleJobSubMissionInfo(GleEntityApplication):
     # async def sync(self):
     #     task_list = await self._sync()
 
-
-
-if __name__ == '__main__':
-    asyncio.run(GleJobSubMissionInfo(
-        {
-            "apiServerHost": "https://www.cgladvisory.com",
-            "aesKey": "eae48bfe137cc656",
-            "account": "system@wearecgl.com"
-        }
-    ).sync_job_submission_by_job_order_id())
-
-
-
-    # async def get_candidate_id_by_job_order_id(self, status_list: Optional[list] = None):
-    #     """
-    #     status_list用来确定同步这个职位下什么状态的简历，
-    #     以外服gllue前端为例
-    #     jobsubmission_status_kanban=
-    #     apply 应聘
-    #     longlist 加入项目
-    #     cvsent 简历推荐-全部
-    #     cvsent^non_feedback 简历推荐-未反馈
-    #     cvsent^feedbacked 简历推荐-已反馈
-    #     clientinterview-客户面试-全部
-    #     clientinterview^feedbacked-客户面试-已反馈
-    #     clientinterview^non_feedback 客户面试-未反馈
-    #     offersign-offer-全部
-    #     offersign^feedbacked_pass-offer-已接受
-    #     offersign^feedbacked_reject-offer-已拒绝
-    #     offersign^non_feedback-offer-未反馈
-    #     onboard-入职-全部
-    #     onboard^in_probation-入职-在试用期内
-    #     onboard^out_of_probation-入职-已过试用期
-    #     invoice-业绩分配-全部
-    #     invoice^approvaled-业绩分配-已审批
-    #     invoice^no_approval-业绩分配-未审批
-    #     reject-淘汰
-    #     """
-    #     pass

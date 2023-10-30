@@ -14,8 +14,8 @@ if __name__ == '__main__':
         "extraFieldNameList": "jobsubmission__candidate__id,citys",
         "extraEntity": [
             # CGLConfig.entity_user,
-            CGLConfig.entity_job_order,
-            CGLConfig.entity_client,
+            # CGLConfig.entity_job_order,
+            # CGLConfig.entity_client,
             # CGLConfig.entity_candidate
         ]}
     g = GleExeApp(CGLConfig.gle_user_config,

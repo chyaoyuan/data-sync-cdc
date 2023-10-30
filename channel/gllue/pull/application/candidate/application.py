@@ -99,14 +99,6 @@ class GleCandidateApplication(GleEntityApplication):
                     for candidate in candidate_list:
                         return candidate
 
-    @staticmethod
-    def pop_entity_file_content(entity_body: dict):
-        """保存数据到TIP的时候要把附件的base64抹掉"""
-        if attachments := entity_body.get("mesoorExtraAttachments", []):
-            for attachment in attachments:
-                attachment.pop("fileContent", None)
-        entity_body.get("mesoorExtraLatestResume", {}).pop("fileContent", None)
-        return entity_body
 
 
 
