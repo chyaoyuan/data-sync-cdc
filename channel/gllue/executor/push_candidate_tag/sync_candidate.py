@@ -1,5 +1,6 @@
 import traceback
 
+from channel.gllue.executor.push_candidate_tag.app import TipTagApp
 from channel.gllue.executor.push_job_order_tag.settings.settings import TipConfig
 from datetime import datetime
 import os
@@ -32,13 +33,13 @@ def count_years(date_ranges):
 
 settings = {
     "EntityStorageServerHost": os.getenv("EntityStorageServerHost", "http://localhost:9400"),
-     "TipTagServerHost": os.getenv("TipTagServerHost", "http://effex.tpddns.cn:7777"),
+     "TipTagServerHost": os.getenv("TipTagServerHost", "https://effex-actions.nadileaf.com"),
      "ResumeSDKServerHost": os.getenv("TipTagServerHost", "http://resumesdk.market.alicloudapi.com"),
      "ConvertServerHost": os.getenv("ConvertServerHost", "http://converter.nadileaf.com")
 }
 
 
-async def execute(gle_entity_id,entity,tip_app,schema_app,candidate_push_app,tip_config,candidate_pull_app):
+async def execute(tip_tag_app,gle_entity_id,entity,tip_app,schema_app,candidate_push_app,tip_config,candidate_pull_app):
     logger.info(f"谷露->{gle_entity_id}执行运行")
     latest_resume_info = entity.get("mesoorExtraLatestResume")
     resume_sdk_candidate = await tip_app.resume_sdk_app.parse(latest_resume_info["fileName"],
@@ -46,7 +47,7 @@ async def execute(gle_entity_id,entity,tip_app,schema_app,candidate_push_app,tip
     if not resume_sdk_candidate:
         logger.info(f"pass->{gle_entity_id}")
         return
-    logger.info(resume_sdk_candidate)
+    # logger.info(resume_sdk_candidate)
     gle_resume, _ = await tip_app.convert_app.convert("Resumegl:standard:2023_07_03_09_34_35", resume_sdk_candidate)
     logger.info(f"gllue-resume->{gle_resume}")
     # 给简历打标签
@@ -59,41 +60,45 @@ async def execute(gle_entity_id,entity,tip_app,schema_app,candidate_push_app,tip
     # 职位名标签
     # 获取职位名
     position_name_list: list = get_jme_s_path_batch(["job_exp_objs[].job_position"], resume_sdk_candidate)
+    logger.info(position_name_list)
+    position_name_list = [i for i in position_name_list if i]
     duty_tag_list = []
     if position_name_list:
+        for position_name in position_name_list:
+            duty_tag_info_list = await tip_tag_app.expand_flatten(
+                {"texts": [position_name], "output_category": "position3", "top_k": 1})
+            for duty_tag_info in duty_tag_info_list:
+                duty_tag_list.append(duty_tag_info["tag"])
 
-        duty_tag_info_list = await tip_app.tip_tag_app.expand_flatten(
-            {"texts": [','.join(position_name_list)], "output_category": "position3", "top_k": 3})
-        logger.info(f"duty_tag_list->{duty_tag_info_list}")
-        duty_tag_list = [duty_tag_info["tag"] for duty_tag_info in duty_tag_info_list]
-        gle_resume["tags"] = gle_resume["tags"] + duty_tag_list
-        logger.info(f"duty_tag_list->{duty_tag_list}")
+
+    gle_resume["tags"] = gle_resume["tags"] + duty_tag_list
+    logger.info(f"duty_tag_list->{duty_tag_list}")
     # 行业
     company_name_list: list = get_jme_s_path_batch(["job_exp_objs[].job_cpy"], resume_sdk_candidate)
     industry_tag_list = []
+    logger.info(f"company_name_list->{company_name_list}")
     if company_name_list:
-        logger.info(f"company_name_list->{company_name_list}")
-        industry_tag_info_list = await tip_app.tip_tag_app.expand_flatten(
-            {"texts": [','.join(company_name_list)], "output_category": "industry2-hr", "top_k": 3})
-        logger.info(f"industry_tag_info_list->{industry_tag_info_list}")
-        industry_tag_list = [industry_tag_info["tag"] for industry_tag_info in industry_tag_info_list]
-        gle_resume["tags"] = gle_resume["tags"] + industry_tag_list
-        logger.info(f"industry_tag_list->{industry_tag_list}")
+        for company_name in company_name_list:
+            industry_tag_info_list = await tip_tag_app.expand_flatten(
+                {"texts": [company_name], "output_category": "industry2-hr", "top_k": 1})
+            for industry_tag_info in industry_tag_info_list:
+                industry_tag_list.append(industry_tag_info["tag"])
+    gle_resume["tags"] = gle_resume["tags"] + industry_tag_list
+    logger.info(f"industry_tag_list->{industry_tag_list}")
     industry_tag_id = []
-    logger.error(schema_app.field_string_map["industry"])
     for industry_tag_name in industry_tag_list:
         if industry_id := schema_app.field_string_map["industry"].get(industry_tag_name):
             industry_tag_id.append(str(industry_id))
 
     logger.info(industry_tag_id)
-    industry_tag_id_str = ",".join(industry_tag_id)
-    logger.info(industry_tag_id)
+    industry_tag_id_str = ",".join(list(set(industry_tag_id)))
+
 
     duty_tag_id = []
     for duty_tag in duty_tag_list:
         if tag_id := schema_app.field_string_map["function"].get(duty_tag):
             duty_tag_id.append(str(tag_id))
-    duty_tag_id_str = ",".join(duty_tag_id)
+    duty_tag_id_str = ",".join(list(set(duty_tag_id)))
     logger.info(duty_tag_id_str)
 
     gle_resume["id"] = gle_entity_id
@@ -133,6 +138,7 @@ async def execute(gle_entity_id,entity,tip_app,schema_app,candidate_push_app,tip
     logger.info(f"共计工作多少年->{work_years}")
 
     gle_resume["tags"] = gle_resume["tags"]
+    logger.info(gle_resume)
     info = await candidate_push_app.push_candidate(gle_resume)
     if info:
         await tip_app.source_entity_storage_app.put_entity(
@@ -156,6 +162,7 @@ def get_jme_s_path_batch(jme_s_path_list: list[str], data: dict):
 async def push_candidate_tag_v3(gle_user_config: GleUserConfig, sync_config: SyncConfig, tip_config: TipConfig):
     async with aiohttp.ClientSession() as session:
         gle_pull_app = GlePullApplication(gle_user_config.dict(), sync_config.dict())
+        tip_tag_app = TipTagApp(session, settings)
         candidate_pull_app = gle_pull_app.candidate_app
         schema_app = gle_pull_app.schema_app
         await schema_app.initialize_field_map_field("candidate")
@@ -184,7 +191,7 @@ async def push_candidate_tag_v3(gle_user_config: GleUserConfig, sync_config: Syn
 
                 if signal and (entity.get("mesoorExtraLatestResume") or None):
                     try:
-                        await execute(gle_entity_id,entity,tip_app,schema_app,candidate_push_app,tip_config,candidate_pull_app)
+                        await execute(tip_tag_app, gle_entity_id,entity,tip_app,schema_app,candidate_push_app,tip_config,candidate_pull_app)
                     except Exception as e:
                         traceback.print_exc()
                         continue

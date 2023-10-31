@@ -80,14 +80,20 @@ spec:
     spec:
       containers:
         - name: data-sync-v2-gllue-pull-push
-          image: cr.mesoor.com/production/data-sync-cdc:v20230718-01
+          image: cr.mesoor.com/develop/data-sync-cdc:v20230718-01
           imagePullPolicy: Always
           env:
             - name: PYTHONPATH
               value: "."
             - name: Entity_Storage_Server_HOST
               value: "http://data-sync-v2-entity-storage-server"
-          command: [ "python", "./channel/gllue/executor/sync_candidate.py"]
+            - name: EntityStorageServerHost
+              value: "http://data-sync-v2-entity-storage-server"
+            - name: Recent
+              value: "http://data-sync-v2-entity-storage-server"
+            - name: Entity_Storage_Server_HOST
+              value: "http://data-sync-v2-entity-storage-server"
+          command: [ "python", "./channel/gllue/executor/push_candidate_tag/sync_candidate.py"]
       imagePullSecrets:
         - name: crmesoor-pullsecret
 ---
@@ -162,7 +168,7 @@ spec:
     spec:
       containers:
         - name: data-sync-gllue-push-candidate-waifu
-          image: cr.mesoor.com/develop/data-sync-cdc:v20230921-01
+          image: cr.mesoor.com/develop/data-sync-cdc:v20231031-03
           imagePullPolicy: Always
           env:
             - name: PYTHONPATH
@@ -173,6 +179,10 @@ spec:
               value: "https://fsgtest.gllue.net"
             - name: AesKey
               value: "824531e8cad2a287"
+            - name: Recent
+              value: "3"
+            - name: Unit
+              value: "year"
             - name: Account
               value: "api@fsg.com.cn"
             - name: SleepTimes
