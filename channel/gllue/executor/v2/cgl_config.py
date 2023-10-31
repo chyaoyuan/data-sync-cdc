@@ -9,8 +9,11 @@ class CGLConfig:
         "account": "system@wearecgl.com",
     }
     tip_config = {
-        "tenantAlias": "cgltest"
+        "tenantAlias": "shanghaidezhuqiyeguanli-188"
     }
+    # tip_config = {
+    #     "tenantAlias": "cgltest"
+    # }
     base_sync_config_GqlFilter = {
         "syncModel": "GqlFilter",
 
@@ -67,6 +70,7 @@ class CGLConfig:
         "entityName": "candidate",
         "extraFieldNameList": "citys",
         "fieldList": ["note"],
+        "syncAttachment": False,
         "storageToTipConfig": [
             {"convertId": "cgltest:gllue:gllue_candidate_to_Resume",
              "tipEntityName": "Resume",
@@ -77,8 +81,21 @@ class CGLConfig:
              "storageToTipService": "prod-mesoor-space"}
         ]
     }
+
+    entity_candidate_old = {
+        "entityName": "candidate",
+        "extraFieldNameList": "citys",
+        "fieldList": ["note"],
+        "syncAttachment": False,
+        "storageToTipConfig": [
+            {"convertId": "cgltest:gllue:gllue_candidate_to_Resume",
+             "tipEntityName": "Resume",
+             "storageToTipService": "prod-ruleengine", }
+        ]
+    }
     entity_contract = {
         "entityName": "clientcontract",
+        "syncAttachment": False,
         "storageToTipConfig": [
             {"convertId": "cgltest:gllue:gllue_client_contract_to_Contract",
              "tipEntityName": "Contract",

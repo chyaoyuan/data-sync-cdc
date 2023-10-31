@@ -130,7 +130,7 @@ class GleSchema(BaseApplication):
             url = self.settings.get_field_schema_url.format(entityType=file_name)
             res, status = await self.async_session.get(url, func=self.request_response_callback)
             if isinstance(res, dict) and (message := res.get("message")):
-                logger.error(f"无法加载字段详情 将去除token重新请求->{file_name} {message}")
+                logger.warning(f"无法加载字段详情 将去除token重新请求->{file_name} {message}")
                 res, status = await self.async_session.get(url, not_use_token=True, func=self.request_response_callback)
                 if isinstance(res, dict) and (message := res.get("message")):
                     logger.error(f"最终无法加载字段详情->{file_name} {message}")

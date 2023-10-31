@@ -146,7 +146,11 @@ class GleExeApp:
         #     if not entity_list:
         #         continue
         #     logger.info(f"获取到主实体->{self.sync_config.entityName}->{[i['id'] for i in entity_list]}")
-        for task_list
+        for entity_task in task_list:
+            entity_list, source_response = await entity_task
+            if not entity_list:
+                continue
+            logger.info(f"获取到主实体->{self.sync_config.entityName}->{[i['id'] for i in entity_list]}")
 
 
                 # async with aiofiles.open(f"./data/source-{self.sync_config.entityName}.jsonl", "a") as f:

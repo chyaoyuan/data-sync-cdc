@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 class UrlPath(BaseModel):
     openId: str
 
+# 配置化写入Tip
 
 class MesoorExtraInUsedConfig(BaseModel):
     urlPath: UrlPath

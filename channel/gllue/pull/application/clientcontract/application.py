@@ -8,7 +8,7 @@ from channel.gllue.pull.application.schema.application import GleSchema
 class GleClientContractApplication(GleEntityApplication):
 
     entityType: str = "clientcontract".lower()
-    total_count: int = 5
+    total_count: int = 100
 
     def __init__(self, gle_user_config: dict, base_sync_config: dict):
         super().__init__(gle_user_config, base_sync_config)

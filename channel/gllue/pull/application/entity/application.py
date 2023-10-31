@@ -79,40 +79,39 @@ class GleEntityApplication(BaseApplication):
             attachment.pop("fileContent", None)
 
     async def get_entity_info(self, limit, page: int, sync_attachment: bool, field_name_list: str, gql: str, check: bool = False):
-        async with limit:
-            response = await self._get_entity_info(page, field_name_list, check, gql)
-            logger.info(response)
-            if not response:
-                return [], {}
-            result = response.get("result", {})
-            # 将外部字段合并
-            child_field_name_list = self.schema_app.get_field_name_list_child_from_field_list(field_name_list.split(","))
-            entity_list = self.schema_app.merge_fields(self.entityType, result[self.entityType], child_field_name_list,result)
+        # async with limit:
+        response = await self._get_entity_info(page, field_name_list, check, gql)
+        if not response:
+            return [], {}
+        result = response.get("result", {})
+        # 将外部字段合并
+        child_field_name_list = self.schema_app.get_field_name_list_child_from_field_list(field_name_list.split(","))
+        entity_list = self.schema_app.merge_fields(self.entityType, result[self.entityType], child_field_name_list,result)
 
-            for entity in entity_list:
-                attachments = entity.get("attachments") or None
-                if attachments and sync_attachment:
-                    attachments_ids = await self.attachment_app.get_attachment(attachments, entity)
-                    logger.info(f"get_attachment_success: type->{self.entityType} {entity['id']} attachments_ids->{attachments_ids}")
-            # 获取除了本身以外还有哪些实体
-            extra_entity_list = list(
-                set(list(result.keys())) - set(child_field_name_list) - {self.entityType}
-            )
-            # 对额外实体合并
-            extra_entity_map = {}
-            for extra_entity_name in extra_entity_list:
-                extra_entity_map[extra_entity_name] = self.schema_app._create_extra_entity_id_map(
-                    result.get(extra_entity_name, []))
-            # 对schema映射字典字段进行合并
-            entity_id_map = self.schema_app.field_id_map.get(self.entityType, {})
-            # 对系统字段映射字典字段进行合并
-            system_id_map = copy.deepcopy(self.schema_app.field_id_map)
-            system_id_map.pop(self.entityType, None)
-            for entity in entity_list:
-                self.schema_app.mesoor_extra(entity, system_id_map, list(system_id_map.keys()))
-                self.schema_app.mesoor_extra(entity, entity_id_map, list(entity_id_map.keys()))
-                self.schema_app.mesoor_extra(entity, extra_entity_map, list(extra_entity_map.keys()))
-            return entity_list, response
+        for entity in entity_list:
+            attachments = entity.get("attachments") or None
+            if attachments and sync_attachment:
+                attachments_ids = await self.attachment_app.get_attachment(attachments, entity)
+                logger.info(f"get_attachment_success: type->{self.entityType} {entity['id']} attachments_ids->{attachments_ids}")
+        # 获取除了本身以外还有哪些实体
+        extra_entity_list = list(
+            set(list(result.keys())) - set(child_field_name_list) - {self.entityType}
+        )
+        # 对额外实体合并
+        extra_entity_map = {}
+        for extra_entity_name in extra_entity_list:
+            extra_entity_map[extra_entity_name] = self.schema_app._create_extra_entity_id_map(
+                result.get(extra_entity_name, []))
+        # 对schema映射字典字段进行合并
+        entity_id_map = self.schema_app.field_id_map.get(self.entityType, {})
+        # 对系统字段映射字典字段进行合并
+        system_id_map = copy.deepcopy(self.schema_app.field_id_map)
+        system_id_map.pop(self.entityType, None)
+        for entity in entity_list:
+            self.schema_app.mesoor_extra(entity, system_id_map, list(system_id_map.keys()))
+            self.schema_app.mesoor_extra(entity, entity_id_map, list(entity_id_map.keys()))
+            self.schema_app.mesoor_extra(entity, extra_entity_map, list(extra_entity_map.keys()))
+        return entity_list, response
 
     async def create_tasks(self, field_name_list, sync_attachment: bool, id_list: Optional[List[int]] = None, gql: Optional[str] = None):
         _limit = asyncio.Semaphore(1)

@@ -1,0 +1,40 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: data-sync-cgl-scheduled-task-contract
+  namespace: tip
+spec:
+  schedule: "0 12,22 * * *"
+  successfulJobsHistoryLimit: 0
+  concurrencyPolicy: Replace
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: data-sync-cgl-scheduled-task-contract
+          annotations:
+            sidecar.istio.io/inject: "false"
+        spec:
+          containers:
+            - name: data-sync-cgl-scheduled-task-contract
+              image: cr.mesoor.com/develop/data-sync-cdc:20231031-01
+              env:
+                - name: PYTHONPATH
+                  value: "."
+                - name: ConvertServerHost
+                  value: "http://prod-data-import:8080"
+                - name: TipTransmitterServerHost
+                  value: "http://prod-ruleengine:8080"
+                - name: StoreDerivationServerHost
+                  value: "http://prod-data-sync-storage-derivation-server:8080"
+                - name: TipSpaceServerHost
+                  value: "http://prod-mesoor-space:8080"
+              command: [ "python", "./channel/gllue/executor/v2/pull_client_contract/application.py" ]
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 1000Mi
+          restartPolicy: Never
+      backoffLimit: 1
+

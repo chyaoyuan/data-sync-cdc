@@ -6,11 +6,13 @@ from channel.gllue.executor.v2.cgl_config import CGLConfig
 if __name__ == '__main__':
 
     _sync_config = {
-        "syncModel": "GqlFilter",
+        "syncModel": CGLConfig.SyncModel.Recent,
+        "unit": "day",
+        "recent": 3,
+        "timeFieldName": "lastUpdateDate__day_range",
         "storageModel": "Tip",  # Local # Tip
-        "gql": "",
         **CGLConfig.entity_contract,
         "extraFieldNameList": "citys",
-        "extraEntity": [CGLConfig.entity_client, CGLConfig.entity_user]}
-    g = GleExeApp(CGLConfig.gle_user_config, CGLConfig.base_sync_config_GqlFilter, _sync_config, CGLConfig.tip_config)
+}
+    g = GleExeApp(CGLConfig.gle_user_config, {"syncModel": _sync_config["syncModel"]}, _sync_config, CGLConfig.tip_config)
     asyncio.run(g.sync())
