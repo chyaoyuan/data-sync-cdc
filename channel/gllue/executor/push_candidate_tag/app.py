@@ -125,7 +125,7 @@ class TipTagApp:
                     tag_list.append(tag)
             return tag_list
         logger.error(f"expand_error->{res.status} {await res.text()}")
-        raise Exception(f"expand_error->{res.status} {await res.text()}")
+        return None
 
 
 
