@@ -66,7 +66,7 @@ async def execute(tip_tag_app,gle_entity_id,entity,tip_app,schema_app,candidate_
     if position_name_list:
         for position_name in position_name_list:
             duty_tag_info_list = await tip_tag_app.expand_flatten(
-                {"texts": [position_name], "output_category": "position3", "top_k": 1})
+                {"texts": [position_name], "output_category": "position3", "top_k": 1,"rerank":True})
             for duty_tag_info in duty_tag_info_list:
                 duty_tag_list.append(duty_tag_info["tag"])
 
@@ -80,7 +80,7 @@ async def execute(tip_tag_app,gle_entity_id,entity,tip_app,schema_app,candidate_
     if company_name_list:
         for company_name in company_name_list:
             industry_tag_info_list = await tip_tag_app.expand_flatten(
-                {"texts": [company_name], "output_category": "industry2-hr", "top_k": 1})
+                {"texts": [company_name], "output_category": "industry2-hr", "top_k": 1,"rerank":True})
             for industry_tag_info in industry_tag_info_list:
                 industry_tag_list.append(industry_tag_info["tag"])
     gle_resume["tags"] = gle_resume["tags"] + industry_tag_list
