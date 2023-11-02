@@ -27,7 +27,7 @@ from channel.gllue.pull.application.base.model import BaseResponseModel
 
 class GleCandidateApplication(GleEntityApplication):
     entityType: str = "candidate".lower()
-    total_count: int = 1
+    total_count: int = 5
 
 
     def __init__(self, gle_user_config: dict, base_sync_config: dict):

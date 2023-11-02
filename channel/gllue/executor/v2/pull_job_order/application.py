@@ -17,5 +17,5 @@ if __name__ == '__main__':
     g = GleExeApp(CGLConfig.gle_user_config,
                   {"syncModel": _sync_config["syncModel"]},
                   _sync_config,
-                  CGLConfig.tip_config)
+                  CGLConfig.tip_config_prod)
     asyncio.run(g.sync())

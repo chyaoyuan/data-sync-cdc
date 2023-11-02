@@ -18,16 +18,17 @@ spec:
         spec:
           containers:
             - name: data-sync-cgl-scheduled-task-job-order
-              image: cr.mesoor.com/develop/data-sync-cdc:20231031-01
+              image: cr.mesoor.com/production/data-sync-cdc:20231102-02
+              imagePullPolicy: Always
               env:
                 - name: PYTHONPATH
                   value: "."
                 - name: ConvertServerHost
                   value: "http://prod-data-import:8080"
                 - name: TipTransmitterServerHost
-                  value: "http://prod-ruleengine:8080"
+                  value: "http://prod-ruleengine:80"
                 - name: StoreDerivationServerHost
-                  value: "http://prod-data-sync-storage-derivation-server:8080"
+                  value: "http://prod-data-sync-storage-derivation-server:80"
                 - name: TipSpaceServerHost
                   value: "http://prod-mesoor-space:8080"
               command: [ "python", "./channel/gllue/executor/v2/pull_job_order/application.py" ]

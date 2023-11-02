@@ -8,20 +8,13 @@ class CGLConfig:
         "aesKey": "398b5ec714c59be2",
         "account": "system@wearecgl.com",
     }
-    tip_config = {
+    tip_config_prod = {
         "tenantAlias": "shanghaidezhuqiyeguanli-188"
     }
-    # tip_config = {
-    #     "tenantAlias": "cgltest"
-    # }
-    base_sync_config_GqlFilter = {
-        "syncModel": "GqlFilter",
-
+    tip_config_dev = {
+        "tenantAlias": "cgltest"
     }
-    base_sync_config_IdRecent = {
-        "syncModel": "IdRecent",
 
-    }
     entity_user = {
         "entityName": "user",
         "syncAttachment": True,
@@ -56,7 +49,7 @@ class CGLConfig:
     }
     # 客户
     entity_client = {
-        "syncAttachment": False,
+        "syncAttachment": True,
         "entityName": "client",
         "extraFieldNameList": "citys",
         "storageToTipConfig": [
@@ -70,7 +63,7 @@ class CGLConfig:
         "entityName": "candidate",
         "extraFieldNameList": "citys",
         "fieldList": ["note"],
-        "syncAttachment": False,
+        "syncAttachment": True,
         "storageToTipConfig": [
             {"convertId": "cgltest:gllue:gllue_candidate_to_Resume",
              "tipEntityName": "Resume",

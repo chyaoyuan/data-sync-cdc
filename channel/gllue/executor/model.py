@@ -34,6 +34,7 @@ class StorageToTipConfig(BaseModel):
     jmeSPath: Optional[str] = Field(default=None)
 
 
+
 class GluEntityConfig(BaseModel):
     entityName: str = Field(description="谷露的主实体名字，星型同步主节点")
     # 因为谷露接口原因，同步jobsubmission时与其直接关联的实体实在太多，自动生成的fields字段远超url最大长度，如果配置此字段就不会使用自动生成的fields
@@ -49,7 +50,8 @@ class SyncConfig(GluEntityConfig):
     storageModel: Union[Literal['Tip'], Literal['Local'], None] = Field(default=None, description="存入Tip、写本地文件")
     storagePath: Optional[str] = Field(default=None, description="写本地文件模式文件路径，jsonl追加写,file存文件对象")
     # GQL 同步模式
-    gql: Optional[str] = Field(default=None, description="覆写谷露筛选条件")
+    gql: Optional[str] = Field(default=None, description="完全覆写谷露筛选条件")
+    extraGql: Optional[str] = Field(default=None, description="额外添加谷露筛选条件")
     # 最近N单位
     recent: Optional[int] = Field(default=None, title="同步数", examples=3)
     unit: Optional[Literal['year', 'month', 'day']] = Field(default=None, description="recent的单位")
@@ -97,9 +99,13 @@ class SyncConfig(GluEntityConfig):
         # 将时间参数生成进GQL里
 
         elif sync_model == "Recent" and unit and recent:
+            extra_gql = values.get('extraGql')
             start_time, end_time = parse_time_interval({"unit": unit, "recent": recent})
             gql = values["timeFieldName"] + "=" + quote(start_time + "," + end_time)
-            values["gql"] = gql
+            if extra_gql:
+                values["gql"] = f"{gql}&{extra_gql}"
+            else:
+                values["gql"] = gql
         if values["storageModel"] == "Local":
             path = values["storagePath"]
             values["jsonFileStoragePath"] = f'{path}/{values["primaryEntityName"]}'

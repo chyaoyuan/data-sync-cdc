@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: data-sync-v2-entity-storage-server
+  name: prod-data-sync-storage-derivation-server
   namespace: tip
   annotations:
     kubernetes.io/ingress.class: tip
@@ -22,13 +22,49 @@ spec:
   tls:
     - secretName: nadlieaf-tls
   rules:
-    - host: 'data-sync-v2-entity-storage-server.nadlieaf.com'
+    - host: 'prod-data-sync-storage-derivation-server.nadlieaf.com'
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: data-sync-v2-entity-storage-server
+                name: prod-data-sync-storage-derivation-server
+                port:
+                  number: 80
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prod-data-sync-storage-derivation-server
+  namespace: tip
+  annotations:
+    kubernetes.io/ingress.class: tip
+    nginx.ingress.kubernetes.io/proxy-body-size: 512m
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: '3600'
+    nginx.ingress.kubernetes.io/proxy-read-timeout: '3600'
+    nginx.ingress.kubernetes.io/proxy-send-timeout: '3600'
+    ingress.kubernetes.io/ssl-redirect: 'true'
+    ingress.kubernetes.io/force-hsts: 'true'
+    ingress.kubernetes.io/hsts-max-age: '315360000'
+    ingress.kubernetes.io/hsts-include-subdomains: 'true'
+    ingress.kubernetes.io/hsts-preload: 'true'
+    nginx.ingress.kubernetes.io/cors-allow-credentials: 'true'
+    nginx.ingress.kubernetes.io/cors-allow-headers: '*'
+    nginx.ingress.kubernetes.io/cors-allow-methods: GET, POST, PUT, PATCH, OPTIONS, DELETE
+    nginx.ingress.kubernetes.io/enable-cors: 'true'
+spec:
+  tls:
+    - secretName: nadlieaf-tls
+  rules:
+    - host: 'prod-data-sync-storage-derivation-server.nadlieaf.com'
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: prod-data-sync-storage-derivation-server
                 port:
                   number: 80

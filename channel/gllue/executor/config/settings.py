@@ -7,9 +7,10 @@ class Settings:
          "TipSpaceServerHost": os.getenv("TipSpaceServerHost", "http://localhost:51413")
     }
     print(tip_app_config)
+
     # tip_app_config = {
     #     "ConvertServerHost": os.getenv("ConvertServerHost", "http://localhost:54635"),
-    #     "TipTransmitterServerHost": os.getenv("ConvertServerHost", "http://localhost:53740"),
+    #     "TipTransmitterServerHost": os.getenv("ConvertServerHost", "http://ruleengine.nadileaf.com"),
     #     "StoreDerivationServerHost": os.getenv("ConvertServerHost", "http://localhost:61505"),
     #     "TipSpaceServerHost": os.getenv("ConvertServerHost", "http://localhost:63579")
     # }

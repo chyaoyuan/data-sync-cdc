@@ -111,7 +111,15 @@ class GleEntityApplication(BaseApplication):
             self.schema_app.mesoor_extra(entity, system_id_map, list(system_id_map.keys()))
             self.schema_app.mesoor_extra(entity, entity_id_map, list(entity_id_map.keys()))
             self.schema_app.mesoor_extra(entity, extra_entity_map, list(extra_entity_map.keys()))
-        return entity_list, response
+        un_repeat_set = set()
+        # 有的配置会导致生成两个相同实体，第一个信息全第二个不全，这里把它去重
+        new_entity_list = []
+        for entity in entity_list:
+            _id = entity["id"]
+            if _id not in un_repeat_set:
+                new_entity_list.append(entity)
+                un_repeat_set.add(_id)
+        return new_entity_list, response
 
     async def create_tasks(self, field_name_list, sync_attachment: bool, id_list: Optional[List[int]] = None, gql: Optional[str] = None):
         _limit = asyncio.Semaphore(1)

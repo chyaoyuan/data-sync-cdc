@@ -19,6 +19,7 @@ from urllib.parse import urlencode
 
 class GlePullClient(GleEntityApplication):
     entityType = "client".lower()
+    total_count: int = 5
 
     def __init__(self, gle_user_config: dict, base_sync_config: dict):
         super().__init__(gle_user_config, base_sync_config)
