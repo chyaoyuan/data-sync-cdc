@@ -11,15 +11,10 @@ if __name__ == '__main__':
         "unit": "day",
         "recent": 3,
         "timeFieldName": "lastUpdateDate__day_range",
+        "extraFieldNameList": "citys",
         **CGLConfig.entity_candidate,
-}
-    # _sync_config = {
-    #     "syncModel": CGLConfig.SyncModel.IdList,
-    #     "storageModel": "Tip",  # Local # Tip
-    #     "idList": [330646],
-    #     **CGLConfig.entity_candidate,
-    #     "extraFieldNameList": "jobsubmission__candidate__id,citys",
-    # }
+    }
+
     g = GleExeApp(CGLConfig.gle_user_config, {"syncModel": _sync_config["syncModel"]}, _sync_config, CGLConfig.tip_config_prod)
     asyncio.run(g.sync())
 

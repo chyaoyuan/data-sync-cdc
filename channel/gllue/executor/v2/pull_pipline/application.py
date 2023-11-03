@@ -11,22 +11,12 @@ if __name__ == '__main__':
         "recent": 3,
         "timeFieldName": "lastUpdateDate__day_range",
         **CGLConfig.entity_jobsubmission,
+        "extraGql": "joborder__is_private__s=0",
         "extraFieldNameList": "jobsubmission__candidate__id,citys",
         # "extraEntity": [
-        #     CGLConfig.entity_candidate, CGLConfig.entity_job_order
+        #     CGLConfig.entity_candidate, CGLConfig.entity_job_order, CGLConfig.entity_job_order
         # ]
     }
-    # _sync_config = {
-    #     "syncModel": CGLConfig.SyncModel.IdList,
-    #     "storageModel": "Tip",  # Local # Tip
-    #     "idList": [3448460],
-    #
-    #     **CGLConfig.entity_jobsubmission,
-    #     "extraFieldNameList": "jobsubmission__candidate__id,citys",
-    #     # "extraEntity": [
-    #     #     CGLConfig.entity_candidate, CGLConfig.entity_job_order
-    #     # ]
-    # }
     g = GleExeApp(CGLConfig.gle_user_config,
                   {"syncModel": _sync_config["syncModel"]},
                   _sync_config,
