@@ -1,11 +1,7 @@
 import asyncio
-import http.cookies
-from typing import Optional
 import aiohttp
 from channel.gllue.pull.application.base.model import GleUrlConfig
 from channel.gllue.pull.application.model.gle_user_config_model import GleUserConfig
-from channel.gllue.session.normal_session import HoMuraSession
-from utils.logger import logger
 from channel.gllue.session.gllue_aiohttp_session import GlHoMuraSession
 
 

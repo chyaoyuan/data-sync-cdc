@@ -1,13 +1,12 @@
-import asyncio
+import copy
 from typing import Optional
 
 from channel.gllue.pull.application.attachment.application import GleAttachment
 from channel.gllue.pull.application.entity.application import GleEntityApplication
 from utils.logger import logger
 
-from channel.gllue.pull.application.model.sync_model import SyncConfig, BaseSyncConfig
+from channel.gllue.pull.application.model.sync_model import BaseSyncConfig
 from channel.gllue.pull.application.schema.application import GleSchema
-from channel.gllue.pull.application.base.model import BaseResponseModel
 
 
 class GleJobSubMissionInfo(GleEntityApplication):
@@ -25,6 +24,68 @@ class GleJobSubMissionInfo(GleEntityApplication):
         # 用户/操作者
         self.gle_user_id: Optional[int] = None
 
+    @staticmethod
+    def get_info_from_list(_id, entity_list):
+        for entity in entity_list:
+            if entity['id'] == _id:
+                return entity
+        raise Exception()
+
+
+    async def get_entity_info(self, limit, page: int, sync_attachment: bool, field_name_list: str, gql: str, check: bool = False):
+        # async with limit:
+        response = await self._get_entity_info(page, field_name_list, check, gql)
+        if not response:
+            return [], {}
+        result = response.get("result", {})
+        # 将外部字段合并
+        child_field_name_list = self.schema_app.get_field_name_list_child_from_field_list(field_name_list.split(","))
+        entity_list = self.schema_app.merge_fields(self.entityType, result[self.entityType], child_field_name_list,result)
+
+        for entity in entity_list:
+            attachments = entity.get("attachments") or None
+            if attachments and sync_attachment:
+                attachments_ids = await self.attachment_app.get_attachment(attachments, entity)
+                logger.info(f"get_attachment_success: type->{self.entityType} {entity['id']} attachments_ids->{attachments_ids}")
+        # 获取除了本身以外还有哪些实体
+        extra_entity_list = list(
+            set(list(result.keys())) - set(child_field_name_list) - {self.entityType}
+        )
+        # 对额外实体合并
+        extra_entity_map = {}
+        for extra_entity_name in extra_entity_list:
+            extra_entity_map[extra_entity_name] = self.schema_app._create_extra_entity_id_map(
+                result.get(extra_entity_name, []))
+        # 对schema映射字典字段进行合并
+        entity_id_map = self.schema_app.field_id_map.get(self.entityType, {})
+        # 对系统字段映射字典字段进行合并
+        system_id_map = copy.deepcopy(self.schema_app.field_id_map)
+        system_id_map.pop(self.entityType, None)
+        for entity in entity_list:
+            self.schema_app.mesoor_extra(entity, system_id_map, list(system_id_map.keys()))
+            self.schema_app.mesoor_extra(entity, entity_id_map, list(entity_id_map.keys()))
+            self.schema_app.mesoor_extra(entity, extra_entity_map, list(extra_entity_map.keys()))
+        un_repeat_set = set()
+        # 有的配置会导致生成两个相同实体，第一个信息全第二个不全，这里把它去重
+        new_entity_list = []
+        for entity in entity_list:
+            _id = entity["id"]
+            if _id not in un_repeat_set:
+                new_entity_list.append(entity)
+                un_repeat_set.add(_id)
+        # 这段代码是特殊给jobsubmission加的，转换做不到只能我这里转
+        for entity in entity_list:
+            mesoor_extra_pipeline = []
+            for k in entity.keys():
+                if "_set" in k and (entity[k] or None) and k not in ["note_set"]:
+                    name = k.replace("_set", "")
+                    ids = entity.get(k, [])
+                    for _id in ids:
+                        info = copy.deepcopy(self.get_info_from_list(_id, result.get(name)))
+                        info["mesoorExtraStage"] = name
+                        mesoor_extra_pipeline.append(info)
+            entity["mesoorExtraPipeline"] = mesoor_extra_pipeline
+        return new_entity_list, response
 
     # async def sync_job_submission_by_job_order_id(self, job_order_id: str, field_name_list: str):
     #     """

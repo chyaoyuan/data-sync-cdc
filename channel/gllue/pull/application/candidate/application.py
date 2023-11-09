@@ -1,34 +1,16 @@
 import asyncio
-import base64
-import copy
-import hashlib
-import json
-import os
-import time
 from asyncio import Task
-from cgi import parse_header
 from typing import Optional, Literal, List
 from urllib.parse import unquote, urlencode
-
-import aiofiles
-import aiohttp
-
-
 from channel.gllue.pull.application.attachment.application import GleAttachment
-from channel.gllue.pull.application.base.application import BaseApplication
 from channel.gllue.pull.application.entity.application import GleEntityApplication
-from utils.logger import logger
-from datetime import datetime
-
-from channel.gllue.pull.application.model.sync_model import SyncConfig, BaseSyncConfig
+from channel.gllue.pull.application.model.sync_model import  BaseSyncConfig
 from channel.gllue.pull.application.schema.application import GleSchema
-from channel.gllue.pull.application.base.model import BaseResponseModel
 
 
 class GleCandidateApplication(GleEntityApplication):
     entityType: str = "candidate".lower()
-    total_count: int = 5
-
+    total_count: int = 20
 
     def __init__(self, gle_user_config: dict, base_sync_config: dict):
         super().__init__(gle_user_config, base_sync_config)

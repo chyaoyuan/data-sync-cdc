@@ -1,29 +1,19 @@
-from enum import Enum
-
 from channel.gllue.executor.model import SyncModel
-
-
-class EntityName(str, Enum):
-    user = "user"
-    invoice = "invoice"
-    joborder = "joborder"
-    client = "client"
-    candidate = "candidate"
-    clientcontract = "clientcontract"
-    jobsubmission = "jobsubmission"
 
 
 class CGLConfig:
     SyncModel = SyncModel
-    EntityName = EntityName
     gle_user_config = {
         "apiServerHost": "https://www.cgladvisory.com",
         "aesKey": "398b5ec714c59be2",
         "account": "system@wearecgl.com",
     }
-    tip_config_prod = "shanghaidezhuqiyeguanli-188"
-
-    tip_config_dev = "cgltest"
+    tip_config_prod = {
+        "tenantAlias": "shanghaidezhuqiyeguanli-188"
+    }
+    tip_config_dev = {
+        "tenantAlias": "cgltest"
+    }
 
     entity_user = {
         "entityName": "user",

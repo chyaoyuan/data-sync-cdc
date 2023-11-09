@@ -1,21 +1,20 @@
 import asyncio
 
 from channel.gllue.executor.base.application import GleExeApp
+from channel.gllue.executor.base.field_remap import config_map
 from channel.gllue.executor.v2.cgl_config import CGLConfig
 
 if __name__ == '__main__':
-
     _sync_config = {
+        **CGLConfig.gle_user_config,
         "syncModel": CGLConfig.SyncModel.Recent,
+        "storageModel": ["tip"],  # Local # Tip
         "unit": "day",
-        "recent": 7,
         "timeFieldName": "lastUpdateDate__day_range",
-        "storageModel": "Tip",  # Local # Tip
-        **CGLConfig.entity_contract,
-        "extraFieldNameList": "citys",
-}
+        "recent": 3,
+        "tenantAlias": CGLConfig.tip_config_prod,
+        "primaryEntityName": CGLConfig.EntityName.jobsubmission,
+    }
 
-
-    g = GleExeApp(CGLConfig.gle_user_config, {"syncModel": _sync_config["syncModel"]}, _sync_config, CGLConfig.tip_config_prod)
+    g = GleExeApp(*config_map(_sync_config))
     asyncio.run(g.sync())
-

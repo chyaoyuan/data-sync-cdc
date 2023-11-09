@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Literal, List, Optional, Union
 import jwt
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, Field, root_validator, constr
 from typing import Literal, Optional, List
 from urllib.parse import quote, unquote
 import urllib.parse
@@ -34,7 +34,6 @@ class StorageToTipConfig(BaseModel):
     jmeSPath: Optional[str] = Field(default=None)
 
 
-
 class GluEntityConfig(BaseModel):
     entityName: str = Field(description="谷露的主实体名字，星型同步主节点")
     # 因为谷露接口原因，同步jobsubmission时与其直接关联的实体实在太多，自动生成的fields字段远超url最大长度，如果配置此字段就不会使用自动生成的fields
@@ -47,8 +46,7 @@ class GluEntityConfig(BaseModel):
 
 class SyncConfig(GluEntityConfig):
     syncModel: SyncModel = Field(default=SyncModel.GqlFilter.value, description="同步模式：GQL全局覆盖，时间范围，最近N单位，实体ID")
-    storageModel: Union[Literal['Tip'], Literal['Local'], None] = Field(default=None, description="存入Tip、写本地文件")
-    storagePath: Optional[str] = Field(default=None, description="写本地文件模式文件路径，jsonl追加写,file存文件对象")
+    storageModel: List[constr(regex="^(local|tip)$")] = Field(default=["tip"], description="存入Tip、写本地文件")
     # GQL 同步模式
     gql: Optional[str] = Field(default=None, description="完全覆写谷露筛选条件")
     extraGql: Optional[str] = Field(default=None, description="额外添加谷露筛选条件")
@@ -106,10 +104,8 @@ class SyncConfig(GluEntityConfig):
                 values["gql"] = f"{gql}&{extra_gql}"
             else:
                 values["gql"] = gql
-        if values["storageModel"] == "Local":
-            path = values["storagePath"]
-            values["jsonFileStoragePath"] = f'{path}/{values["primaryEntityName"]}'
-            values["baseAttachmentFileStoragePath"] = f'{path}/{values["primaryEntityName"]}'
+
+
 
         return values
 # Tip配置

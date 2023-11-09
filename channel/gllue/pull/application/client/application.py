@@ -34,16 +34,6 @@ class GlePullClient(GleEntityApplication):
         self.gle_user_id: Optional[int] = None
 
 
-    # async def get_max_page(self, overwrite_gql: Optional[str] = None) -> int:
-    #     field_name_list = await self.schema_app.get_field_name_list(self.entityType)
-    #     field_name_list = ",".join(field_name_list)
-    #     # field_name_list = "operation,id,is_parent,parent__id,parent__type,contractInfo,candidate_authorization_remind,type,name,__name__,citys,industrys,people_count,past_people_count,job_count,type,note_count,attachment_count,gllueext_bdsource"
-    #
-    #     info = await self.get_client_info(page=1, field_name_list=field_name_list, check=True, overwrite_gql=overwrite_gql)
-    #     i = BaseResponseModel(**info)
-    #     logger.info(f"账户->{self.gle_user_config.account} 实体类型->{self.entityType} 每页{self.total_count}个 共{i.totalpages}页码 共{i.totalcount}个实体")
-    #     return i.totalpages
-
 
     # async def get_clients_by_gql(self, gql: dict):
     #     """

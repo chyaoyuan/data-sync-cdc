@@ -29,6 +29,8 @@ class GleExeApp:
         self.gle_pull_app = GlePullApplication(self.gle_user_config, self.gle_base_config.dict())
         self.tip_app = TipMidApplication(Settings.tip_app_config)
 
+        self.tenant_alias = self.tip_config.tenantAlias
+
     async def put_to_tip(self,
                          entity_list: list,
                          storage_to_tip_config: StorageToTipConfig,
@@ -37,36 +39,19 @@ class GleExeApp:
         for entity in entity_list:
             entity["mesoorExtraSourceEntityType"] = gle_entity_name
             entity["mesoorExtraTenantAlias"] = self.tip_config.tenantAlias
-        entity_list_copy: list = copy.deepcopy(entity_list)
-        # 递归查询符合附件格式的json并抽取出来gather保存
-        for entity_copy in entity_list_copy:
-            attachment_list = self.gle_pull_app.base_entity_in_used.get_entity_file_content(entity_copy)
-            for attachment in attachment_list:
-                # await self.tip_app.tip_derivation_app.save_file({
-                #     "fileContent": base64.b64decode(attachment["fileContent"].encode()),
-                #     "fileName": attachment['fileName'],
-                #     "key": f"gllue-{attachment['id']}"
-                # })
-                await self.tip_app.tip_derivation_app.save_b64_file({
-                    "fileContent": base64.b64encode(attachment["fileContent"]).decode(),
-                    "fileName": attachment['fileName'],
-                    "key": f"/{self.tip_config.tenantAlias}/gllue-{attachment['id']}"
-                })
-            if attachment_list:
-                logger.info(f"attachment_upload_success-谷露实体->{gle_entity_name}"
-                            f" id->{entity_copy['id']} id->{[i['id'] for i in attachment_list]}")
-        # 先把附件去掉再请求转换，省带宽 加速
+        # 先把附件bytes去掉再请求转换
+        entity_list_copy = entity_list
         for entity_copy in entity_list_copy:
             self.gle_pull_app.clientcontract_app.pop_entity_file_content(entity_copy)
+
         converted_entity_list, _ = await self.tip_app.convert_app.convert_batch(
             storage_to_tip_config.convertId, entity_list_copy, self.tip_config.tenantAlias, self.x_source)
 
         for converted_entity, entity_copy in zip(converted_entity_list, entity_list_copy):
-            logger.info(entity_copy['id'])
             file_info_list = self.gle_pull_app.base_entity_in_used.get_entity_file_content(entity_copy)
             converted_entity["rawData"] = {}
             converted_entity["rawData"]["content"] = entity_copy
-            converted_entity["rawData"]["files"] = [{"fileName": i['fileName'],'key':f"/{self.tip_config.tenantAlias}/gllue-{i['id']}"}for i in file_info_list]
+            converted_entity["rawData"]["files"] = [{"fileName": i['fileName'], 'key':f"/{self.tip_config.tenantAlias}/gllue-{i['id']}"}for i in file_info_list]
             converted_entity["standardFields"]["source"] = self.source
             mesoor_extra_in_used_config = converted_entity["customFields"].pop("mesoorExtraInUsedConfig")
             config = MesoorExtraInUsedConfig(**mesoor_extra_in_used_config)
@@ -92,32 +77,34 @@ class GleExeApp:
                     self.x_source,
                     self.x_editor,
                     converted_entity, config.headers)
-                if status != 200:
-                    # async with aiofiles.open(f"./data/error_entity_{storage_to_tip_config.tipEntityName}.jsonl","w") as f:
-                    #     await f.write(
-                    #         json.dumps({"message": _,"source":entity_copy,"std":converted_entity})
-                    #     )
-                    logger.error(converted_entity)
-                    logger.error(entity_copy)
+                # with open(f"{self.tip_config.tenantAlias}_{gle_entity_name}_error.jsonl", "a") as f:
+                #     f.write(
+                #         json.dumps(
+                #             {"request": _, "status": status} ,ensure_ascii=False)+"\n")
 
-        # async with aiofiles.open(f"./data/converted-{storage_to_tip_config.tipEntityName}.jsonl", "a") as f:
-        #     await asyncio.gather(*[
-        #         f.write(json.dumps(converted_entity, ensure_ascii=False) + "\n") for converted_entity in converted_entity_list
-        #     ])
+    async def upload_file(self, entity_list):
+        for entity_copy in entity_list:
+            attachment_list = self.gle_pull_app.base_entity_in_used.get_entity_file_content(entity_copy)
+            for attachment in attachment_list:
+                await asyncio.create_task(self.tip_app.tip_derivation_app.save_b64_file({
+                    "fileContent": base64.b64encode(attachment["fileContent"].read()).decode(),
+                    "fileName": attachment['fileName'],
+                    "key": f"/{self.tip_config.tenantAlias}/gllue-{attachment['id']}"
+                }))
 
     async def execute(self):
 
         # 主实体同步器
         primary_entity_app = self.gle_pull_app.get_app(self.sync_config.entityName)
         # 主实体fields和映射
-        # self.sync_config.fieldList = ["note"]
         if not self.sync_config.onlyFields:
             field_name_list: str = await primary_entity_app.initialize_field(self.sync_config.syncAttachment,self.sync_config.fieldList)
-            if self.sync_config.extraFieldNameList:
-                field_name_list = f"{field_name_list},{self.sync_config.extraFieldNameList}"
         else:
             await primary_entity_app.initialize_field(self.sync_config.syncAttachment, self.sync_config.fieldList)
             field_name_list: str = self.sync_config.onlyFields
+        if self.sync_config.extraFieldNameList:
+            logger.error(self.sync_config.extraFieldNameList)
+            field_name_list = f"{field_name_list},{self.sync_config.extraFieldNameList}"
         # 额外多个实体的fields配置 这里保留重新实例化的app是因为加载schema会生成双向mapping，如果重新实例化就不会生成maping
         extra_entity_field_config = {}
         for _ in self.sync_config.extraEntity:
@@ -142,12 +129,14 @@ class GleExeApp:
             if not entity_list:
                 continue
             logger.info(f"获取到主实体->{self.sync_config.entityName}->{index} {[i['id'] for i in entity_list]}")
-            for config in self.sync_config.storageToTipConfig:
-                await self.put_to_tip(
-                        entity_list,
-                        config,
-                        self.sync_config.entityName,
-                    )
+            await self.upload_file(entity_list)
+            await asyncio.gather(*[
+                self.put_to_tip(
+                    entity_list,
+                    config,
+                    self.sync_config.entityName,
+                ) for config in self.sync_config.storageToTipConfig])
+
             # storage_to_tip_config = self.sync_config.storageToTipConfig[0]
             # converted_entity_list, _ = atip_app.convert_app.convert_batch(
             #     storage_to_tip_config.convertId, entity_list)
@@ -186,12 +175,7 @@ class GleExeApp:
             #                             extra_entity_config.entityName,
             #                             ) for config in extra_entity_config.storageToTipConfig])
 
-                                # async with aiofiles.open(f"./data/source-{extra_entity_config.entityName}.jsonl", "a") as f:
-                                #     await asyncio.gather(*[
-                                #         f.write(
-                                #             json.dumps(self.gle_pull_app.candidate_app.pop_entity_file_content(extra_entity),
-                                #                        ensure_ascii=False) + "\n") for extra_entity in extra_entity_list
-                                #     ])
+
     async def sync(self):
         await self.execute()
 

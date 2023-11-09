@@ -5,7 +5,7 @@ from urllib.parse import unquote, urlencode
 from datetime import datetime
 
 from loguru import logger
-
+from tempfile import TemporaryFile
 from channel.gllue.pull.application.schema.application import GleSchema
 
 
@@ -28,7 +28,7 @@ class GleAttachment(GleSchema):
             func=self.request_response_callback)
         if entity:
             entity["mesoorExtraAttachments"] = attachments_info['result']["attachment"]
-        for attachment in entity["mesoorExtraAttachments"]:
+        for _id, attachment in zip(attachments_ids.split(","), entity["mesoorExtraAttachments"]):
             # {
             #      "dateAdded": "2023-09-20 22:11:43",
             #      "real_preview_path": "fsgtest/candidate/2023-09/preview/65ecc133-1f02-4872-bba6-37677e4e9890.pdf",
@@ -46,22 +46,14 @@ class GleAttachment(GleSchema):
                 ssl=False,
                 func=self.request_file_response_callback,
             )
+
+            file = TemporaryFile()
+            file.write(con)
             _, params = parse_header(headers.get("Content-Disposition"))
             filename = unquote(params.get('filename'))
             attachment["fileName"] = filename
-            # attachment["fileContent"] = base64.b64encode(con).decode()
-            attachment["fileContent"] = con
-        # latest_date = None
-        # for attachment_info in entity["mesoorExtraAttachments"]:
-        #     if attachment_info["type"] == "candidate":
-        #         date_added = attachment_info["dateAdded"]
-        #         if date_added is not None:
-        #             # 解析日期字符串为datetime对象
-        #             date_added = datetime.strptime(date_added, "%Y-%m-%d %H:%M:%S")
-        #             if latest_date is None or date_added > latest_date:
-        #                 latest_date = date_added
-        #                 latest_dict = attachment_info
-        #                 entity["mesoorExtraLatestResume"] = latest_dict
+            attachment["fileContent"] = file
+            file.seek(0)
         return attachments_ids.split(',')
 
 

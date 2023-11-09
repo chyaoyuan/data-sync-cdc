@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: data-sync-cgl-job-submission-job
+  namespace: tip
+spec:
+  template:
+    metadata:
+      name: data-sync-cgl-job-submission-job
+    spec:
+      containers:
+        - name: data-sync-cgl-scheduled-task-job-submission
+          image: cr.mesoor.com/production/data-sync-cdc:v20231180-01-s
+          imagePullPolicy: Always
+          env:
+            - name: PYTHONPATH
+              value: "."
+            - name: ConvertServerHost
+              value: "http://prod-data-import:8080"
+            - name: TipTransmitterServerHost
+              value: "http://prod-ruleengine:80"
+            - name: StoreDerivationServerHost
+              value: "http://prod-data-sync-storage-derivation-server:80"
+            - name: TipSpaceServerHost
+              value: "http://prod-mesoor-space:8080"
+          command: [ "python", "./channel/gllue/executor/v2/pull_pipline/application.py" ]
+      restartPolicy: Never
+  backoffLimit: 1  # 可选，指定重新尝试的次数

@@ -110,6 +110,7 @@ class GleSchema(BaseApplication):
         return entity_list
 
     async def initialize_field_map_field(self, entity_name: str):
+
         entity_schema = await self.get_schema(entity_name)
         logger.info(entity_schema)
         for field_schema in entity_schema:

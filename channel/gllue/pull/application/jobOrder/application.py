@@ -1,18 +1,9 @@
-import asyncio
 from typing import Optional
-
 from channel.gllue.pull.application.attachment.application import GleAttachment
 from channel.gllue.pull.application.entity.application import GleEntityApplication
-from utils.logger import logger
-
 from channel.gllue.pull.application.model.sync_model import SyncConfig, BaseSyncConfig
 from channel.gllue.pull.application.schema.application import GleSchema
-from channel.gllue.pull.application.base.model import BaseResponseModel
-from urllib.parse import quote, parse_qsl
 
-from utils.parse_time_interval import parse_time_interval
-from urllib.parse import urlencode
-from urllib.parse import parse_qs
 
 
 class GleJobOrder(GleEntityApplication):
