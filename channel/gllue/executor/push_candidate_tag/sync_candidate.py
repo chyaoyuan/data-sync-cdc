@@ -49,6 +49,7 @@ async def execute(tip_tag_app,gle_entity_id,entity,tip_app,schema_app,candidate_
         return
     # logger.info(resume_sdk_candidate)
     gle_resume, _ = await tip_app.convert_app.convert("Resumegl:standard:2023_07_03_09_34_35", resume_sdk_candidate)
+
     logger.info(f"gllue-resume->{gle_resume}")
     # 给简历打标签
     resume_tag = get_jme_s_path_batch(
@@ -57,6 +58,8 @@ async def execute(tip_tag_app,gle_entity_id,entity,tip_app,schema_app,candidate_
          "cert_objs[].langcert_name", "cert_objs[].langcert_name", "skills_objs[].skills_name"], resume_sdk_candidate)
     logger.info(f"gllue-resume-tag->{resume_tag}")
     gle_resume["tags"] = resume_tag
+    gle_resume["id"] = gle_entity_id
+    await candidate_push_app.push_candidate(gle_resume)
     # 职位名标签
     # 获取职位名
     position_name_list: list = get_jme_s_path_batch(["job_exp_objs[].job_position"], resume_sdk_candidate)
@@ -102,7 +105,6 @@ async def execute(tip_tag_app,gle_entity_id,entity,tip_app,schema_app,candidate_
 
     logger.info(industry_tag_id)
     industry_tag_id_str = ",".join(list(set(industry_tag_id)))
-
 
     duty_tag_id = []
     for duty_tag in duty_tag_list:
