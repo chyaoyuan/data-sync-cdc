@@ -24,6 +24,15 @@ class GleUserConfig:
         env_var[_env_name[0].lower()+_env_name[1:]] = os.getenv(_env_name, _default)
 
 
+class GleUserConfigProd:
+    env_field_name_list = ["ApiServerHost", "AesKey", "Account"]
+    # 去掉_为真参数
+    env_field_default_list = ["https://fsg.gllue.com", "ce5e7cb4ea88075b", "minghui.a.qi@accenture.com"]
+    env_var = {}
+    for _env_name, _default in zip(env_field_name_list, env_field_default_list):
+        env_var[_env_name[0].lower()+_env_name[1:]] = os.getenv(_env_name, _default)
+
+
 class SyncConfig:
     env_field_name_list = ["EntityName", "Recent", "Unit", "OrderBy", "SyncModel", "TimeFieldName", "syncAttachment"]
     env_field_default_list = ["jobOrder", "3", "day", "-id", "Recent", "lastUpdateDate__day_range", True]
@@ -60,6 +69,7 @@ class Settings:
     TipConfig = TipConfig
     TipMiddlewareConfig = TipMiddlewareConfig
     GleUserConfig: dict = GleUserConfig.env_var
+    GleUserConfigProd: dict = GleUserConfigProd.env_var
     SyncConfig: dict = SyncConfig.env_var
     SyncConfigGql: dict = SyncConfigGql.env_var
 

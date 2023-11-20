@@ -80,7 +80,7 @@ spec:
     spec:
       containers:
         - name: data-sync-v2-gllue-pull-push
-          image: cr.mesoor.com/develop/data-sync-cdc:v20230718-01
+          image: cr.mesoor.com/develop/data-sync-cdc:20231120-01
           imagePullPolicy: Always
           env:
             - name: PYTHONPATH
