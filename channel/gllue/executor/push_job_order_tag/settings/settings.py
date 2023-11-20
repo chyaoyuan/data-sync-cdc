@@ -32,6 +32,14 @@ class SyncConfig:
         env_var[_env_name[0].lower()+_env_name[1:]] = os.getenv(_env_name, _default)
 
 
+class SyncConfigGql:
+    env_field_name_list = ["EntityName", "gql", "OrderBy", "SyncModel", "syncAttachment"]
+    env_field_default_list = ["candidate", "id__s=574",  "-id", "Recent", True]
+    env_var = {}
+    for _env_name, _default in zip(env_field_name_list, env_field_default_list):
+        env_var[_env_name[0].lower()+_env_name[1:]] = os.getenv(_env_name, _default)
+
+
 class ExtraConfig:
     time_sleep = int(os.getenv("SleepTimes", "180"))
 
@@ -53,6 +61,7 @@ class Settings:
     TipMiddlewareConfig = TipMiddlewareConfig
     GleUserConfig: dict = GleUserConfig.env_var
     SyncConfig: dict = SyncConfig.env_var
+    SyncConfigGql: dict = SyncConfigGql.env_var
 
 
 

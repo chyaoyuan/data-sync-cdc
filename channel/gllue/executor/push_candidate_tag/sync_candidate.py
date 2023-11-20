@@ -1,3 +1,4 @@
+import json
 import traceback
 
 from channel.gllue.executor.push_candidate_tag.app import TipTagApp
@@ -39,7 +40,7 @@ settings = {
 }
 
 
-async def execute(tip_tag_app,gle_entity_id,entity,tip_app,schema_app,candidate_push_app,tip_config,candidate_pull_app):
+async def execute(tip_tag_app, gle_entity_id, entity, tip_app, schema_app, candidate_push_app, tip_config,candidate_pull_app):
     logger.info(f"谷露->{gle_entity_id}执行运行")
     latest_resume_info = entity.get("mesoorExtraLatestResume")
     resume_sdk_candidate = await tip_app.resume_sdk_app.parse(latest_resume_info["fileName"],
@@ -54,7 +55,7 @@ async def execute(tip_tag_app,gle_entity_id,entity,tip_app,schema_app,candidate_
     # 给简历打标签
     resume_tag = get_jme_s_path_batch(
         ["lang_objs[].language_name", "cert_objs[].langcert_name", "cert_objs[].langcert_name",
-         "cert_objs[].langcert_name", "cert_objs[].langcert_name", "cert_objs[].langcert_name",
+         "all_cert_objs[].cert_name", "cert_objs[].langcert_name", "cert_objs[].langcert_name", "cert_objs[].langcert_name",
          "cert_objs[].langcert_name", "cert_objs[].langcert_name", "skills_objs[].skills_name"], resume_sdk_candidate)
     logger.info(f"gllue-resume-tag->{resume_tag}")
     gle_resume["tags"] = resume_tag
