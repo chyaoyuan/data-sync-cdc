@@ -97,6 +97,7 @@ class TipTagApp:
             return None
         url = f"{self.settings.TipTagServerHost}/v1/extract/tags"
         res = await self.session.post(url, json=ExtractBodyModel(**data).dict(), ssl=False,timeout=aiohttp.ClientTimeout(total=120))
+        logger.info(f"映射入参->{data} 返回值{res.status} 映射出参->{await res.json()}")
         if res.status == 200:
             info = await res.json()
             tag_list = []
@@ -104,25 +105,21 @@ class TipTagApp:
                 for tag in tags:
                     tag_list.append(tag)
             return tag_list
-
-
         logger.error(f"extract_error->{res.status} {await res.text()}")
         raise Exception(f"extract_error->{res.status} {await res.text()}")
-
 
     async def expand_flatten(self, data: dict):
         url = f"{self.settings.TipTagServerHost}/v1/expand/expand"
         _data = ExpandBodyModel(**data).dict()
-        res = await self.session.post(url,
-                                      json=_data,
-                                      ssl=False,
-                                      timeout=aiohttp.ClientTimeout(total=60))
+        res = await self.session.post(url, json=_data, ssl=False, timeout=aiohttp.ClientTimeout(total=60))
+        logger.info(f"重排序入参->{_data} 返回值{res.status} 重排序出参->{await res.json()}")
         if res.status == 200:
             info = await res.json()
             tag_list = []
             for tags in info["tags"]:
                 for tag in tags:
                     tag_list.append(tag)
+
             return tag_list
         logger.error(f"expand_error->{res.status} {await res.text()}")
         return None

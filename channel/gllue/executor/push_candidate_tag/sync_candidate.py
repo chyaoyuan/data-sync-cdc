@@ -1,3 +1,4 @@
+import copy
 import json
 import traceback
 
@@ -45,12 +46,13 @@ async def execute(tip_tag_app, gle_entity_id, entity, tip_app, schema_app, candi
     latest_resume_info = entity.get("mesoorExtraLatestResume")
     resume_sdk_candidate = await tip_app.resume_sdk_app.parse(latest_resume_info["fileName"],
                                                               latest_resume_info["fileContent"])
+    logger.info(resume_sdk_candidate)
     if not resume_sdk_candidate:
         logger.info(f"pass->{gle_entity_id}")
         return
     # logger.info(resume_sdk_candidate)
     gle_resume, _ = await tip_app.convert_app.convert("Resumegl:standard:2023_07_03_09_34_35", resume_sdk_candidate)
-
+    gle_resume["tags"] = []
     logger.info(f"gllue-resume->{gle_resume}")
     # 给简历打标签
     resume_tag = get_jme_s_path_batch(
@@ -60,6 +62,17 @@ async def execute(tip_tag_app, gle_entity_id, entity, tip_app, schema_app, candi
     logger.info(f"gllue-resume-tag->{resume_tag}")
     gle_resume["tags"] = resume_tag
     gle_resume["id"] = gle_entity_id
+    need_count_fields = ["dateOfBirth", "locations", "expected_salary"]
+    for _ in need_count_fields:
+        if v := entity.get(_):
+            if v:
+                logger.info(f"字段->{_}有值 不写入")
+                gle_resume.pop(_, None)
+    for k, v in copy.deepcopy(gle_resume).items():
+        if not v:
+            logger.info(f"转换后的字段->{_}无值 不写入")
+            gle_resume.pop(k, None)
+
     await candidate_push_app.push_candidate(gle_resume)
     # 职位名标签
     # 获取职位名
@@ -72,14 +85,14 @@ async def execute(tip_tag_app, gle_entity_id, entity, tip_app, schema_app, candi
             duty_tag_info_list = await tip_tag_app.expand_flatten(
                 {"texts": [position_name], "output_category": "position3", "top_k": 1, "rerank":True})
             if not duty_tag_info_list:
-                logger.info("重新排序失败")
                 duty_tag_info_list = await tip_tag_app.expand_flatten(
                     {"texts": [position_name], "output_category": "position3", "top_k": 1})
             if duty_tag_info_list:
                 for duty_tag_info in duty_tag_info_list:
                     duty_tag_list.append(duty_tag_info["tag"])
 
-
+    if not gle_resume.get("tags"):
+        gle_resume["tags"] = []
     gle_resume["tags"] = gle_resume["tags"] + duty_tag_list
     logger.info(f"duty_tag_list->{duty_tag_list}")
     # 行业
@@ -91,7 +104,6 @@ async def execute(tip_tag_app, gle_entity_id, entity, tip_app, schema_app, candi
             industry_tag_info_list = await tip_tag_app.expand_flatten(
                 {"texts": [company_name], "output_category": "industry2-hr", "top_k": 1, "rerank": True})
             if not industry_tag_info_list:
-                logger.info("重新排序失败")
                 industry_tag_info_list = await tip_tag_app.expand_flatten(
                     {"texts": [company_name], "output_category": "industry2-hr", "top_k": 1})
             if industry_tag_info_list:
@@ -152,6 +164,10 @@ async def execute(tip_tag_app, gle_entity_id, entity, tip_app, schema_app, candi
 
     gle_resume["tags"] = gle_resume["tags"]
     logger.info(gle_resume)
+    for k, v in copy.deepcopy(gle_resume).items():
+        if not v:
+            logger.info(f"转换后的字段->{_}无值 不写入")
+            gle_resume.pop(k, None)
     info = await candidate_push_app.push_candidate(gle_resume)
     if info:
         await tip_app.source_entity_storage_app.put_entity(
