@@ -1,7 +1,7 @@
 import asyncio
 import time
 
-from channel.gllue.executor.push_candidate_tag.sync_candidate import push_candidate_tag_v3
+from channel.gllue.executor.push_candidate_tag.sync_candidate_by_id import push_candidate_tag_v3
 from channel.gllue.executor.push_job_order_tag.push_job_order_tag_v3 import push_job_order_tag_exec_v3
 from channel.gllue.executor.push_job_order_tag.settings.settings import Settings
 from utils.logger import logger
@@ -13,7 +13,7 @@ import time
 # 因为标签接口不是很稳定，弃用了V2的workflow任务流配置写法，改为一波流请求
 if __name__ == '__main__':
     sync_config = Settings.SyncConfig
-    gle_user_config = Settings.GleUserConfigProd
+    gle_user_config = Settings.GleUserConfig
 
     extra_config = Settings.ExtraConfig
     flows = Settings.FileSettings.flow_config[Settings.TipConfig.tenant_alias]

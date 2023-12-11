@@ -12,7 +12,7 @@ import time
 # 因为标签接口不是很稳定，弃用了V2的workflow任务流配置写法，改为一波流请求
 if __name__ == '__main__':
     sync_config = Settings.SyncConfig
-    gle_user_config = Settings.GleUserConfig
+    gle_user_config = Settings.GleUserConfigProd
 
     extra_config = Settings.ExtraConfig
     flows = Settings.FileSettings.flow_config[Settings.TipConfig.tenant_alias]

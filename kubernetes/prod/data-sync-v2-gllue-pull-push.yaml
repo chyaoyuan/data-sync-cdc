@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: data-sync-gllue-push-candidate-waifu
-          image: cr.mesoor.com/develop/data-sync-cdc:v20231031-03
+          image: cr.mesoor.com/develop/data-sync-cdc:waifu20231204-01
           imagePullPolicy: Always
           env:
             - name: PYTHONPATH
@@ -44,5 +44,58 @@ spec:
             - name: TenantAlias
               value: "waifu-prod"
           command: [ "python", "./channel/gllue/executor/push_candidate_tag/run_v3.py"]
+      imagePullSecrets:
+        - name: crmesoor-pullsecret
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-sync-gllue-push-job-waifu
+  namespace: tip
+spec:
+  selector:
+    matchLabels:
+      app: data-sync-gllue-push-job-waifu
+      version: v1
+      tier: backend
+      track: stable
+  template:
+    metadata:
+      labels:
+        app: data-sync-gllue-push-job-waifu
+        version: v1
+        tier: backend
+        track: stable
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      containers:
+        - name: data-sync-gllue-push-job-waifu
+          image: cr.mesoor.com/develop/data-sync-cdc:waifu20231204-01
+          imagePullPolicy: Always
+          env:
+            - name: PYTHONPATH
+              value: .
+            - name: EntityStorageServerHost
+              value: http://data-sync-v2-entity-storage-server
+            - name: ConvertServerHost
+              value: http://converter.nadileaf.com
+            - name: ApiServerHost
+              value: http://fsg.gllue.com
+            - name: AesKey
+              value: ce5e7cb4ea88075b
+            - name: Account
+              value: minghui.a.qi@accenture.com
+            - name: SleepTimes
+              value: '360'
+            - name: TenantAlias
+              value: waifu
+            - name: Recent
+              value: '3'
+            - name: Unit
+              value: day
+            - name: OrderBy
+              value: "-lastUpdateDate"
+          command: [ "python", "./channel/gllue/executor/push_job_order_tag_v2/run_v3.py"]
       imagePullSecrets:
         - name: crmesoor-pullsecret

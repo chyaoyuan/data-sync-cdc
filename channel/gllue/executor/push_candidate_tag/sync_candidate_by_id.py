@@ -199,11 +199,11 @@ async def push_candidate_tag_v3(gle_user_config: GleUserConfig, sync_config: Syn
         candidate_push_app = GlePushApplication(gle_user_config.dict()).candidate_app
         tip_app = TipMidApplication(session, settings)
         field_name_list: str = await candidate_pull_app.initialize_field()
-        page_total = await candidate_pull_app.get_max_page()
-        for index_page in range(1, page_total + 1):
-            entity_list, _ = await candidate_pull_app.get_candidate_info(index_page, field_name_list)
-
-            logger.info(f"第{index_page}页 entity->{candidate_pull_app.entityType} id->{[entity['id'] for entity in entity_list]}")
+        candidate_list = [str(i) for i in range(915519-10000, 915519+1)]
+        for new_candidate_id in candidate_list:
+            logger.info(new_candidate_id)
+            entity_list, _ = await candidate_pull_app.get_candidate_info(1, field_name_list,f"id__eq%3D{new_candidate_id}")
+            # logger.info(f"第{index_page}页 entity->{candidate_pull_app.entityType} id->{[entity['id'] for entity in entity_list]}")
             for entity in entity_list:
                 gle_entity_id = entity["id"]
                 # 判断变动

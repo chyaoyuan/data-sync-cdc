@@ -92,7 +92,7 @@ class GleEntity(GleSchema):
                                     check: bool = False,
                                     overwrite_gql: Optional[str] = None) -> dict:
         gql = overwrite_gql if overwrite_gql else self.sync_config.gql
-
+        logger.info(gql)
         res, status = await self.async_session.get(
             url=self.settings.get_entity_url.format(entityType=self.entityType),
             ssl=False,
